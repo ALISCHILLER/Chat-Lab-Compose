@@ -1,16 +1,11 @@
 pluginManagement {
     repositories {
-        google {
-            content {
-                includeGroupByRegex("com\\.android.*")
-                includeGroupByRegex("com\\.google.*")
-                includeGroupByRegex("androidx.*")
-            }
-        }
+        google()
         mavenCentral()
         gradlePluginPortal()
     }
 }
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
@@ -19,6 +14,31 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Chat Lab"
-include(":app")
- 
+rootProject.name = "ChatLab"
+
+include(
+    ":app",
+
+    // Core
+    ":core:core-common",
+    ":core:core-domain",
+    ":core:core-protocol-api",
+    ":core:core-data",
+    ":core:core-storage",
+    ":core:core-observability",
+    ":core:core-native", // فعلاً placeholder، هفته ۹ فعال میشه
+
+    // Feature
+    ":feature:feature-settings",
+    ":feature:feature-lab",
+    ":feature:feature-connect",
+    ":feature:feature-chat",
+    ":feature:feature-debug",
+
+    // Protocols
+    ":protocol:protocol-websocket-okhttp",
+    ":protocol:protocol-websocket-ktor",
+    ":protocol:protocol-mqtt",
+    ":protocol:protocol-socketio",
+    ":protocol:protocol-signalr"
+)
