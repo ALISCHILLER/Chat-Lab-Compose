@@ -16,6 +16,5 @@ android {
 }
 
 dependencies {
-    // مدل‌های دامنه: سبک و قابل تست
     implementation(libs.kotlinx.coroutines.core)
 }

@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.msa.chatlab.feature.lab"
+    namespace = "com.msa.chatlab.featurelab"
     compileSdk = 34
 
     defaultConfig {
@@ -29,14 +29,4 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
-
-    implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
-
-    implementation(libs.koin.compose)
-    implementation(libs.kotlinx.coroutines.android)
-
-    implementation(project(":core:core-domain"))
-    implementation(project(":core:core-data"))
-    implementation(project(":core:core-observability"))
 }

@@ -11,8 +11,25 @@
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
             <option value="$PROJECT_DIR$/core" />
+            <option value="$PROJECT_DIR$/core/core-common" />
+            <option value="$PROJECT_DIR$/core/core-data" />
+            <option value="$PROJECT_DIR$/core/core-domain" />
+            <option value="$PROJECT_DIR$/core/core-native" />
+            <option value="$PROJECT_DIR$/core/core-observability" />
+            <option value="$PROJECT_DIR$/core/core-protocol-api" />
+            <option value="$PROJECT_DIR$/core/core-storage" />
             <option value="$PROJECT_DIR$/feature" />
+            <option value="$PROJECT_DIR$/feature/feature-chat" />
+            <option value="$PROJECT_DIR$/feature/feature-connect" />
+            <option value="$PROJECT_DIR$/feature/feature-debug" />
+            <option value="$PROJECT_DIR$/feature/feature-lab" />
+            <option value="$PROJECT_DIR$/feature/feature-settings" />
             <option value="$PROJECT_DIR$/protocol" />
+            <option value="$PROJECT_DIR$/protocol/protocol-mqtt" />
+            <option value="$PROJECT_DIR$/protocol/protocol-signalr" />
+            <option value="$PROJECT_DIR$/protocol/protocol-socketio" />
+            <option value="$PROJECT_DIR$/protocol/protocol-websocket-ktor" />
+            <option value="$PROJECT_DIR$/protocol/protocol-websocket-okhttp" />
           </set>
         </option>
       </GradleProjectSettings>

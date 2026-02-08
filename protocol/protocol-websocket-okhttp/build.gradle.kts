@@ -6,6 +6,7 @@ plugins {
 android {
     namespace = "com.msa.chatlab.protocol.websocket.okhttp"
     compileSdk = 34
+
     defaultConfig { minSdk = 24 }
 
     compileOptions {

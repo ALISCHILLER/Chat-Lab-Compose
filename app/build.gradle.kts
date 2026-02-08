@@ -43,41 +43,23 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
-    // AndroidX
+    // AndroidX & Navigation
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
 
-    // DI + Coroutines
+    // DI (Koin)
     implementation(libs.koin.android)
     implementation(libs.koin.compose)
-    implementation(libs.kotlinx.coroutines.android)
 
-    // Core
-    implementation(project(":core:core-common"))
-    implementation(project(":core:core-domain"))
-    implementation(project(":core:core-protocol-api"))
-    implementation(project(":core:core-data"))
-    implementation(project(":core:core-storage"))
-    implementation(project(":core:core-observability"))
-
-    // Features
+    // Feature modules
     implementation(project(":feature:feature-settings"))
     implementation(project(":feature:feature-lab"))
     implementation(project(":feature:feature-connect"))
     implementation(project(":feature:feature-chat"))
     implementation(project(":feature:feature-debug"))
 
-    // Protocols
-    implementation(project(":protocol:protocol-websocket-okhttp"))
-    implementation(project(":protocol:protocol-websocket-ktor"))
-    implementation(project(":protocol:protocol-mqtt"))
-    implementation(project(":protocol:protocol-socketio"))
-    implementation(project(":protocol:protocol-signalr"))
-
-    // Tests
+    // Test
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext)
     androidTestImplementation(libs.androidx.test.espresso)
