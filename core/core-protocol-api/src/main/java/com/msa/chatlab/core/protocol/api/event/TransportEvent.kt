@@ -13,16 +13,26 @@ sealed class TransportEvent {
         val willRetry: Boolean = false
     ) : TransportEvent()
 
-    data class MessageReceived(val payload: IncomingPayload) : TransportEvent()
+    data class MessageReceived(
+        val payload: IncomingPayload
+    ) : TransportEvent()
 
-    data class MessageSent(val messageId: MessageId) : TransportEvent()
+    data class MessageSent(
+        val messageId: MessageId
+    ) : TransportEvent()
 
-    data class AckReceived(val messageId: MessageId) : TransportEvent()
+    data class AckReceived(
+        val messageId: MessageId
+    ) : TransportEvent()
 
-    data class ErrorOccurred(val error: TransportError) : TransportEvent()
+    data class ErrorOccurred(
+        val error: TransportError
+    ) : TransportEvent()
 
-    // مخصوص SignalR برای مقایسه منصفانه
-    data class UnderlyingTransportSelected(val transport: UnderlyingTransport) : TransportEvent()
+    /** فقط برای SignalR و جاهایی که underlying مهم است */
+    data class UnderlyingTransportSelected(
+        val transport: UnderlyingTransport
+    ) : TransportEvent()
 
     data class FallbackTriggered(
         val from: UnderlyingTransport,

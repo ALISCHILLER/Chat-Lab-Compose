@@ -169,7 +169,7 @@ class SettingsViewModel(
 
         if (!validation.isValid) {
             _state.value = _state.value.copy(
-                validationErrors = validation.errors,
+                validationErrors = validation.errors.map { it.message },
                 lastError = "Invalid profile"
             )
             _effects.tryEmit(SettingsUiEffect.Toast("Validation failed"))
@@ -252,8 +252,8 @@ private fun EditorDraft.toProfile(): Profile {
         protocolType = protocolType,
         transportConfig = transport,
         // مقادیر پیش‌فرض
-        deliverySemantics = DeliverySemantics.AtLeastOnce,
-        ackStrategy = AckStrategy.TransportLevel,
+        deliverySemantics = com.msa.chatlab.core.domain.model.DeliverySemantics.AtLeastOnce,
+        ackStrategy = com.msa.chatlab.core.domain.model.AckStrategy.TransportLevel,
         outboxPolicy = OutboxPolicy(),
         retryPolicy = RetryPolicy(),
         reconnectPolicy = ReconnectPolicy(),
