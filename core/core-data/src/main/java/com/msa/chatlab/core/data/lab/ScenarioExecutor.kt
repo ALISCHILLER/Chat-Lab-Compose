@@ -63,7 +63,7 @@ class ScenarioExecutor(
         val load = LoadGenerator(
             scope = scope,
             durationMs = scenario.durationMs,
-            ratePerSecond = scenario.ratePerSecond,
+            ratePerSecond = scenarioratePerSecond,
             burstEvery = scenario.burstEvery,
             burstSize = scenario.burstSize
         ) { text ->
@@ -77,13 +77,7 @@ class ScenarioExecutor(
             if (extraDelay > 0) delay(extraDelay)
 
             // ارسال واقعی
-            val msgId = messageSender.sendText(text, target = "default").value
-
-            // اگر sender در حالت آفلاین enqueue کرده باشد، باید event بدهد
-            // فرض: MessageSender وقتی آفلاین است Outbox enqueue می‌کند.
-            // ما اینجا تشخیص مستقیم نداریم، پس:
-            // - Sent/Enqueued را از TransportEvent جمع می‌کنیم (پایین).
-            // اگر تو TransportEvent برای enqueue نداری، همینجا یک hook اضافه می‌کنیم (پیشنهادی در پایین).
+            messageSender.sendText(text, "default")
         }
 
         // کنترل قطع/وصل برنامه‌ریزی‌شده
@@ -133,8 +127,8 @@ class ScenarioExecutor(
                     is TransportEvent.Connected -> record(RunEvent.Connected(nowTs()))
                     is TransportEvent.Disconnected -> record(RunEvent.Disconnected(nowTs(), ev.reason ?: "unknown"))
                     is TransportEvent.MessageSent -> {
-                        metrics.onSent(ev.messageId, System.currentTimeMillis())
-                        record(RunEvent.Sent(nowTs(), ev.messageId))
+                        metrics.onSent(ev.messageId.value, System.currentTimeMillis())
+                        record(RunEvent.Sent(nowTs(), ev.messageId.value))
                     }
                     is TransportEvent.MessageReceived -> {
                         metrics.onReceived(ev.payload.envelope.messageId.value, System.currentTimeMillis())

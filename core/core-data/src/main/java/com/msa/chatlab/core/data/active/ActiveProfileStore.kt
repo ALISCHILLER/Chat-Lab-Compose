@@ -9,6 +9,7 @@ interface ActiveProfileStore {
     val activeProfile: StateFlow<Profile?>
     fun setActive(profile: Profile?)
     fun clear()
+    fun getActiveNow(): Profile?
 }
 
 class InMemoryActiveProfileStore : ActiveProfileStore {
@@ -22,4 +23,6 @@ class InMemoryActiveProfileStore : ActiveProfileStore {
     override fun clear() {
         _active.value = null
     }
+
+    override fun getActiveNow(): Profile? = _active.value
 }
