@@ -7,18 +7,13 @@ plugins {
 android {
     namespace = "com.msa.chatlab.core.storage"
     compileSdk = 34
-
-    defaultConfig {
-        minSdk = 24
-    }
+    defaultConfig { minSdk = 26 }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+    kotlinOptions { jvmTarget = "17" }
 }
 
 dependencies {

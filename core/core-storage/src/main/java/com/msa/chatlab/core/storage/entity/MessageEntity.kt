@@ -3,9 +3,6 @@ package com.msa.chatlab.core.storage.entity
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
-import com.msa.chatlab.core.domain.model.ChatMessage
-import com.msa.chatlab.core.domain.model.MessageDirection
-import com.msa.chatlab.core.domain.value.MessageId
 
 @Entity(
     tableName = "messages",
@@ -22,29 +19,4 @@ data class MessageEntity(
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "queued") val queued: Boolean = false,
     @ColumnInfo(name = "attempt") val attempt: Int = 0
-) {
-    fun toDomain(): ChatMessage = ChatMessage(
-        profileId = profileId,
-        messageId = MessageId(messageId),
-        direction = if (direction == "OUT") MessageDirection.OUT else MessageDirection.IN,
-        text = text,
-        createdAtMs = createdAt,
-        queued = queued,
-        attempt = attempt,
-        status = com.msa.chatlab.core.domain.model.MessageStatus.Sent // Placeholder
-    )
-
-    companion object {
-        fun fromDomain(profileId: String, message: ChatMessage): MessageEntity {
-            return MessageEntity(
-                profileId = profileId,
-                messageId = message.messageId.value,
-                direction = if (message.direction == MessageDirection.OUT) "OUT" else "IN",
-                text = message.text,
-                createdAt = message.createdAtMs,
-                queued = message.queued,
-                attempt = message.attempt
-            )
-        }
-    }
-}
+)

@@ -6,7 +6,7 @@ plugins {
 android {
     namespace = "com.msa.chatlab.core.protocol.api"
     compileSdk = 34
-    defaultConfig { minSdk = 24 }
+    defaultConfig { minSdk = 26 }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -16,6 +16,6 @@ android {
 }
 
 dependencies {
-    implementation(project(":core:core-domain"))
+    api(project(":core:core-domain"))
     implementation(libs.kotlinx.coroutines.core)
 }

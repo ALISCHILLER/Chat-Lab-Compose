@@ -35,7 +35,4 @@ dependencies {
 
     implementation(project(":core:core-data"))
     implementation(project(":core:core-domain"))
-
-    // MPAndroidChart
-    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 }

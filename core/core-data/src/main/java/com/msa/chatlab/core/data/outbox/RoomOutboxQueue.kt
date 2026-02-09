@@ -1,7 +1,6 @@
 package com.msa.chatlab.core.data.outbox
 
 import com.msa.chatlab.core.domain.value.MessageId
-import com.msa.chatlab.core.domain.value.TimestampMillis
 import com.msa.chatlab.core.protocol.api.payload.Envelope
 import com.msa.chatlab.core.protocol.api.payload.OutgoingPayload
 import com.msa.chatlab.core.storage.dao.OutboxDao
@@ -36,17 +35,17 @@ class RoomOutboxQueue(
     private fun OutboxItemEntity.toDomain(): OutboxItem {
         val env = Envelope(
             messageId = MessageId(messageId),
-            createdAt = TimestampMillis(createdAtMs),
-            contentType = contentType,
-            headers = headersJson.decodeHeaders(),
-            body = body
+            createdAt = com.msa.chatlab.core.domain.value.TimestampMillis(createdAt),
+            contentType = "text/plain", // Placeholder
+            headers = emptyMap(), // Placeholder
+            body = text.toByteArray()
         )
         return OutboxItem(
             id = id,
-            payload = OutgoingPayload(envelope = env, destination = destination),
-            createdAt = createdAtMs,
+            payload = OutgoingPayload(envelope = env, destination = "default"), // Placeholder
+            createdAt = createdAt,
             attempt = attempt,
-            lastError = lastError
+            lastError = null // Placeholder
         )
     }
 
@@ -55,27 +54,9 @@ class RoomOutboxQueue(
         return OutboxItemEntity(
             id = id,
             messageId = env.messageId.value,
-            createdAtMs = env.createdAt.value,
-            contentType = env.contentType,
-            headersJson = env.headers.encodeHeaders(),
-            body = env.body,
-            destination = payload.destination,
+            text = String(env.body),
             attempt = attempt,
-            lastError = lastError
+            createdAt = createdAt
         )
-    }
-
-    private fun Map<String, String>.encodeHeaders(): String {
-        return entries.joinToString("&") { "${it.key}=${it.value}" }
-    }
-
-    private fun String.decodeHeaders(): Map<String, String> {
-        if (isBlank()) return emptyMap()
-        return split("&")
-            .mapNotNull {
-                val idx = it.indexOf("=")
-                if (idx <= 0) null else it.substring(0, idx) to it.substring(idx + 1)
-            }
-            .toMap()
     }
 }

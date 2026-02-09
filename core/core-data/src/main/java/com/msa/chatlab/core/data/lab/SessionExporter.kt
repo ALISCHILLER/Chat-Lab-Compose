@@ -2,7 +2,7 @@ package com.msa.chatlab.core.data.lab
 
 import com.msa.chatlab.core.data.codec.ProfileJsonCodec
 import com.msa.chatlab.core.data.manager.ProfileManager
-import java.io.File
+import kotlinx.coroutines.runBlocking
 
 class SessionExporter(
     private val profileManager: ProfileManager,
@@ -11,17 +11,10 @@ class SessionExporter(
     fun exportRun(
         runSession: RunSession,
         runResult: RunResult,
-        events: List<ScenarioExecutor.RunEvent>,
-        outputDir: File
-    ): ExportBundle {
-        outputDir.mkdirs()
+        events: List<ScenarioExecutor.RunEvent>
+    ): Map<String, String> {
+        val profileJson = runBlocking { profileManager.getProfile(runSession.runId.let { com.msa.chatlab.core.domain.value.ProfileId(it.value) })?.let { codec.encode(it) } ?: "{}" }
 
-        // 1. profile_used.json
-        val profile = profileManager.getProfile(runSession.runId.value.let { com.msa.chatlab.core.domain.value.ProfileId(it) })
-        val profileJson = profile?.let { codec.encode(it) } ?: "{}"
-        File(outputDir, "profile_used.json").writeText(profileJson)
-
-        // 2. run_events.csv
         val csv = buildString {
             appendLine("timestamp,event_type,message_id,reason")
             events.forEach { ev ->
@@ -29,26 +22,25 @@ class SessionExporter(
                     is ScenarioExecutor.RunEvent.Connected -> Triple("connected", "", "")
                     is ScenarioExecutor.RunEvent.Disconnected -> Triple("disconnected", "", ev.reason)
                     is ScenarioExecutor.RunEvent.MessageSent -> Triple("sent", ev.messageId, "")
-                    is ScenarioExecutor.RunEvent.MessageReceived -> Triple("received", "", "")
+                    is ScenarioExecutor.RunEvent.MessageReceived -> Triple("received", ev.messageId ?: "", "")
                     is ScenarioExecutor.RunEvent.Error -> Triple("error", "", ev.message)
+                    else -> Triple("unknown", "", "")
                 }
                 appendLine("${ev.timestampMs},$eventType,$messageId,$reason")
             }
         }
-        File(outputDir, "run_events.csv").writeText(csv)
 
-        // 3. metrics_summary.json
         val summary = """
         {
           "run_id": "${runSession.runId.value}",
           "profile_name": "${runSession.profileName}",
           "protocol_type": "${runSession.protocolType}",
-          "scenario_preset": "${runSession.scenarioPreset}",
+          "scenario_preset": "${runSession.scenario.preset.name}",
           "started_at": ${runSession.startedAt.value},
           "sent": ${runResult.sent},
           "received": ${runResult.received},
           "failed": ${runResult.failed},
-          "retried": ${runResult.retried},
+          "enqueued": ${runResult.enqueued},
           "latency_p50_ms": ${runResult.latencyP50Ms ?: "null"},
           "latency_p95_ms": ${runResult.latencyP95Ms ?: "null"},
           "latency_p99_ms": ${runResult.latencyP99Ms ?: "null"},
@@ -56,36 +48,11 @@ class SessionExporter(
           "success_rate_percent": ${runResult.successRatePercent ?: "null"}
         }
         """.trimIndent()
-        File(outputDir, "metrics_summary.json").writeText(summary)
 
-        // 4. README.md
-        val readme = """
-        # ChatLab Run Report
-
-        - **Run ID**: ${runSession.runId.value}
-        - **Profile**: ${runSession.profileName}
-        - **Protocol**: ${runSession.protocolType}
-        - **Scenario**: ${runSession.scenarioPreset}
-        - **Timestamp**: ${runSession.startedAt.value}
-
-        ## Summary
-
-        ${runResult.toSummary()}
-        """.trimIndent()
-        File(outputDir, "README.md").writeText(readme)
-
-        return ExportBundle(
-            profileUsedFile = File(outputDir, "profile_used.json"),
-            eventsFile = File(outputDir, "run_events.csv"),
-            metricsFile = File(outputDir, "metrics_summary.json"),
-            readmeFile = File(outputDir, "README.md")
+        return mapOf(
+            "profile_used.json" to profileJson,
+            "run_events.csv" to csv,
+            "metrics_summary.json" to summary
         )
     }
-
-    data class ExportBundle(
-        val profileUsedFile: File,
-        val eventsFile: File,
-        val metricsFile: File,
-        val readmeFile: File
-    )
 }
