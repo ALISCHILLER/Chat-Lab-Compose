@@ -63,7 +63,7 @@ class ScenarioExecutor(
         val load = LoadGenerator(
             scope = scope,
             durationMs = scenario.durationMs,
-            ratePerSecond = scenarioratePerSecond,
+            ratePerSecond = scenario.messageRatePerSecond,
             burstEvery = scenario.burstEvery,
             burstSize = scenario.burstSize
         ) { text ->

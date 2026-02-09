@@ -24,7 +24,6 @@ class SessionExporter(
                     is ScenarioExecutor.RunEvent.MessageSent -> Triple("sent", ev.messageId, "")
                     is ScenarioExecutor.RunEvent.MessageReceived -> Triple("received", ev.messageId ?: "", "")
                     is ScenarioExecutor.RunEvent.Error -> Triple("error", "", ev.message)
-                    else -> Triple("unknown", "", "")
                 }
                 appendLine("${ev.timestampMs},$eventType,$messageId,$reason")
             }
