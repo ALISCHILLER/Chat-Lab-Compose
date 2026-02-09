@@ -27,7 +27,7 @@ class WsOkHttpTransport(
     override val capabilities: TransportCapabilities = TransportCapabilities(
         supportsQoS = false,
         supportsAck = false,
-        supportsNativeReconnect = false, // فعلاً reconnect را بعداً در ConnectionManager می‌سازیم
+        supportsNativeReconnect = false,
         supportsBinary = true
     )
 
@@ -52,7 +52,6 @@ class WsOkHttpTransport(
 
     override suspend fun connect() {
         if (!started.compareAndSet(false, true)) {
-            // اگر قبلاً وصل شده، دوباره وصل نزن
             return
         }
 
@@ -65,7 +64,6 @@ class WsOkHttpTransport(
             .headers(resolved.headers)
             .build()
 
-        // newWebSocket async است؛ نتیجه via listener می‌آید
         ws = resolved.client.newWebSocket(request, listener)
     }
 
@@ -75,7 +73,6 @@ class WsOkHttpTransport(
         ws = null
 
         if (socket != null) {
-            // 1000 = normal closure
             socket.close(1000, "client disconnect")
         } else {
             _connectionState.value = ConnectionState.Disconnected("no socket")
@@ -100,7 +97,7 @@ class WsOkHttpTransport(
 
         if (ok) {
             _stats.value = _stats.value.copy(bytesSent = _stats.value.bytesSent + bytes.size)
-            _events.tryEmit(TransportEvent.MessageSent(payload.envelope.messageId.value))
+            _events.tryEmit(TransportEvent.MessageSent(payload.envelope.messageId))
         } else {
             val err = OkHttpErrorMapper.map(RuntimeException("OkHttp send returned false"))
             _events.tryEmit(TransportEvent.ErrorOccurred(err))

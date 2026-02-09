@@ -9,5 +9,5 @@ import org.koin.dsl.module
 val FeatureModule = module {
     viewModel { SettingsViewModel(get(), get(), get()) }
     viewModel { ConnectViewModel(get(), get()) }
-    viewModel { ChatViewModel(get(), get(), get(), get()) }
+    viewModel { ChatViewModel(get(), get(), get(), get(), get()) }
 }

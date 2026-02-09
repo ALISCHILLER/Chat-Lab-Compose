@@ -13,7 +13,7 @@ class MessageSender(
     private val outbox: OutboxQueue
 ) {
 
-    suspend fun sendText(text: String, target: String = "default") {
+    suspend fun sendText(text: String, destination: String = "default") {
         val env = Envelope(
             messageId = MessageId(UUID.randomUUID().toString()),
             createdAt = TimestampMillis(System.currentTimeMillis()),
@@ -22,7 +22,7 @@ class MessageSender(
             body = text.encodeToByteArray()
         )
 
-        val payload = OutgoingPayload(envelope = env, target = target)
+        val payload = OutgoingPayload(envelope = env, destination = destination)
 
         if (connectionManager.isConnectedNow()) {
             connectionManager.sendViaPreparedTransport(payload)

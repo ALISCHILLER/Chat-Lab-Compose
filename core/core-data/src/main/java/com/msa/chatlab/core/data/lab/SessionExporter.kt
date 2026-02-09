@@ -2,7 +2,6 @@ package com.msa.chatlab.core.data.lab
 
 import com.msa.chatlab.core.data.codec.ProfileJsonCodec
 import com.msa.chatlab.core.data.manager.ProfileManager
-import com.msa.chatlab.core.domain.model.Profile
 import java.io.File
 
 class SessionExporter(
@@ -59,16 +58,34 @@ class SessionExporter(
         """.trimIndent()
         File(outputDir, "metrics_summary.json").writeText(summary)
 
+        // 4. README.md
+        val readme = """
+        # ChatLab Run Report
+
+        - **Run ID**: ${runSession.runId.value}
+        - **Profile**: ${runSession.profileName}
+        - **Protocol**: ${runSession.protocolType}
+        - **Scenario**: ${runSession.scenarioPreset}
+        - **Timestamp**: ${runSession.startedAt.value}
+
+        ## Summary
+
+        ${runResult.toSummary()}
+        """.trimIndent()
+        File(outputDir, "README.md").writeText(readme)
+
         return ExportBundle(
             profileUsedFile = File(outputDir, "profile_used.json"),
             eventsFile = File(outputDir, "run_events.csv"),
-            metricsFile = File(outputDir, "metrics_summary.json")
+            metricsFile = File(outputDir, "metrics_summary.json"),
+            readmeFile = File(outputDir, "README.md")
         )
     }
 
     data class ExportBundle(
         val profileUsedFile: File,
         val eventsFile: File,
-        val metricsFile: File
+        val metricsFile: File,
+        val readmeFile: File
     )
 }

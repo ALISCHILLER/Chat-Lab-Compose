@@ -8,17 +8,14 @@ import kotlinx.coroutines.flow.Flow
 interface MessageDao {
 
     @Query("SELECT * FROM messages WHERE profile_id = :profileId ORDER BY created_at ASC")
-    fun observeByProfile(profileId: String): Flow<List<MessageEntity>>
+    fun observe(profileId: String): Flow<List<MessageEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(message: MessageEntity): Long
+    suspend fun upsert(entity: MessageEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(messages: List<MessageEntity>)
+    suspend fun upsertAll(entities: List<MessageEntity>)
 
     @Query("DELETE FROM messages WHERE profile_id = :profileId")
-    suspend fun deleteByProfile(profileId: String)
-
-    @Query("DELETE FROM messages")
-    suspend fun deleteAll()
+    suspend fun clear(profileId: String)
 }

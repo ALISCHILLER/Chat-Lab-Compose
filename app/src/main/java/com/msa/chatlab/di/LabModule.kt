@@ -4,6 +4,7 @@ import com.msa.chatlab.core.data.lab.*
 import com.msa.chatlab.featurelab.vm.LabViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
@@ -12,7 +13,7 @@ val LabModule = module {
     single { CoroutineScope(Dispatchers.Default) }
 
     // اجزای آزمایشگاه
-    single { ScenarioExecutor(get(), get(), get(), get()) }
+    single { ScenarioExecutor(get(), get(), get(), get(), get()) }
     single { SessionExporter(get(), get()) }
 
     // ViewModel
@@ -20,7 +21,8 @@ val LabModule = module {
         LabViewModel(
             profileManager = get(),
             scenarioExecutor = get(),
-            sessionExporter = get()
+            sessionExporter = get(),
+            context = androidContext()
         )
     }
 }

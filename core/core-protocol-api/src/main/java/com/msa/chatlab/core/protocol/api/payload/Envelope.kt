@@ -11,8 +11,8 @@ data class Envelope(
     val body: ByteArray
 ) {
     companion object {
-        fun text(text: String): Envelope = Envelope(
-            messageId = MessageId("out-${System.nanoTime()}"),
+        fun text(text: String, id: MessageId): Envelope = Envelope(
+            messageId = id,
             createdAt = TimestampMillis(System.currentTimeMillis()),
             contentType = "text/plain",
             headers = emptyMap(),

@@ -9,7 +9,8 @@ data class LabUiState(
     val runResult: RunResult? = null,
     val progressPercent: Int = 0,
     val counters: Counters = Counters(),
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val pastResults: List<RunResult> = emptyList()
 ) {
     data class Counters(
         val sent: Long = 0,

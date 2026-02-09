@@ -1,7 +1,6 @@
 package com.msa.chatlab.featurelab.screen
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,10 +16,36 @@ fun LabScreen(
     onEvent: (LabUiEvent) -> Unit,
     padding: PaddingValues
 ) {
+    var selectedTab by remember { mutableStateOf(0) }
+    val tabs = listOf("Run", "Results")
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(padding)
+    ) {
+        TabRow(selectedTabIndex = selectedTab) {
+            tabs.forEachIndexed { index, title ->
+                Tab(
+                    selected = selectedTab == index,
+                    onClick = { selectedTab = index },
+                    text = { Text(title) }
+                )
+            }
+        }
+
+        when (selectedTab) {
+            0 -> RunTab(state = state, onEvent = onEvent)
+            1 -> ResultsScreen(results = state.pastResults, padding = PaddingValues())
+        }
+    }
+}
+
+@Composable
+private fun RunTab(state: LabUiState, onEvent: (LabUiEvent) -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -99,7 +124,7 @@ private fun RunningSection(
             Text("Running: ${scenario.preset.name}", style = MaterialTheme.typography.titleMedium)
 
             LinearProgressIndicator(
-                progress = progressPercent / 100f,
+                progress = { progressPercent / 100f },
                 modifier = Modifier.fillMaxWidth()
             )
 

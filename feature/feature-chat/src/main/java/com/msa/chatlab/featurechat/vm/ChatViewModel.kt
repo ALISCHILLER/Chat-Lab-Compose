@@ -6,6 +6,7 @@ import com.msa.chatlab.core.data.active.ActiveProfileStore
 import com.msa.chatlab.core.data.manager.ConnectionManager
 import com.msa.chatlab.core.data.manager.MessageSender
 import com.msa.chatlab.core.data.outbox.OutboxQueue
+import com.msa.chatlab.core.data.repository.MessageRepository
 import com.msa.chatlab.core.protocol.api.event.TransportEvent
 import com.msa.chatlab.featurechat.model.ChatMessageUi
 import com.msa.chatlab.featurechat.state.ChatUiState
@@ -16,7 +17,8 @@ class ChatViewModel(
     private val activeProfileStore: ActiveProfileStore,
     private val connectionManager: ConnectionManager,
     private val messageSender: MessageSender,
-    private val outboxQueue: OutboxQueue
+    private val outboxQueue: OutboxQueue,
+    private val messageRepository: MessageRepository
 ) : ViewModel() {
 
     private val _input = MutableStateFlow("")
@@ -24,7 +26,7 @@ class ChatViewModel(
     private val _lastEvent = MutableStateFlow<String?>(null)
     private val _error = MutableStateFlow<String?>(null)
 
-    private val outboxCountFlow = outboxQueue.observe().map { it.size }
+    private val outboxCountFlow = outboxQueue.observe("").map { it.size }
     private val simulateOfflineFlow = messageSender.simulateOffline
 
     val uiState: StateFlow<ChatUiState> = combine(
@@ -51,6 +53,16 @@ class ChatViewModel(
 
     init {
         viewModelScope.launch {
+            activeProfileStore.activeProfile.collectLatest {
+                it?.let {  profile ->
+                    messageRepository.observeMessages(profile.id.value).collectLatest {
+                        _messages.value = it
+                    }
+                }
+            }
+        }
+
+        viewModelScope.launch {
             connectionManager.events.collect { ev ->
                 _lastEvent.value = when (ev) {
                     is TransportEvent.Connected -> "Connected"
@@ -67,6 +79,18 @@ class ChatViewModel(
                     }
                     is TransportEvent.ErrorOccurred -> _error.value = ev.error.message
                     else -> Unit
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            outboxQueue.observe("").collect { items ->
+                val map = items.associateBy { it.text }
+                _messages.value = _messages.value.map { m ->
+                    if (m.direction == ChatMessageUi.Direction.OUT && m.queued) {
+                        val ob = map[m.text]
+                        if (ob != null) m.copy(attempt = ob.attempt) else m.copy(queued = false)
+                    } else m
                 }
             }
         }
@@ -94,15 +118,15 @@ class ChatViewModel(
         }
     }
 
-    private fun appendMessage(dir: ChatMessageUi.Direction, text: String, queued: Boolean) {
+    private suspend fun appendMessage(dir: ChatMessageUi.Direction, text: String, queued: Boolean) {
         val newItem = ChatMessageUi(
-            id = "m-${System.nanoTime()}",
+            messageId = "m-${System.nanoTime()}",
             direction = dir,
             text = text,
             timeMs = System.currentTimeMillis(),
             queued = queued,
             attempt = 0
         )
-        _messages.value = _messages.value + newItem
+        messageRepository.upsert(newItem)
     }
 }

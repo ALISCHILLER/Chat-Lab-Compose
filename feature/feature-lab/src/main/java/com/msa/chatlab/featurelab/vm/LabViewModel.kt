@@ -39,14 +39,14 @@ class LabViewModel(
             is LabUiEvent.StartLossy -> startScenario(Scenario.Preset.Lossy)
             is LabUiEvent.StartLoadBurst -> startScenario(Scenario.Preset.LoadBurst)
             is LabUiEvent.Stop -> stopExecution()
-            is LabUiEvent.ClearResults -> _uiState.value = _uiState.value.copy(runResult = null, errorMessage = null)
+            is LabUiEvent.ClearResults -> _uiState.value = _uiState.value.copy(runResult = null, errorMessage = null, pastResults = emptyList())
         }
     }
 
     private fun startScenario(preset: Scenario.Preset) {
         if (_uiState.value.isRunning) return
 
-        val scenario = scenario.defaultFor(preset)
+        val scenario = Scenario.defaultFor(preset)
         _uiState.value = _uiState.value.copy(
             isRunning = true,
             activeScenario = scenario,
@@ -61,11 +61,12 @@ class LabViewModel(
                 val result = scenarioExecutor.execute(scenario)
 
                 // به‌روزرسانی نتایج
-                _uiState.value = _uiState.value.copy(
+                _uiState.update { it.copy(
                     isRunning = false,
                     runResult = result,
-                    progressPercent = 100
-                )
+                    progressPercent = 100,
+                    pastResults = it.pastResults + result
+                ) }
 
                 // صدور خروجی
                 val bundle = sessionExporter.exportRun(

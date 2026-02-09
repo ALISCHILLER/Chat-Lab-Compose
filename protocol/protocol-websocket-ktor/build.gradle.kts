@@ -6,13 +6,18 @@ plugins {
 android {
     namespace = "com.msa.chatlab.protocol.websocket.ktor"
     compileSdk = 34
-    defaultConfig { minSdk = 24 }
+
+    defaultConfig {
+        minSdk = 24
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions { jvmTarget = "17" }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
 }
 
 dependencies {
@@ -20,7 +25,11 @@ dependencies {
     implementation(project(":core:core-protocol-api"))
     implementation(libs.kotlinx.coroutines.core)
 
+    // Ktor Client
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.websockets)
+
+    // Koin for DI
+    implementation(libs.koin.android)
 }

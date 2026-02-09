@@ -26,7 +26,6 @@ class WsOkHttpWebSocketListener(
 
     override fun onMessage(webSocket: WebSocket, text: String) {
         val payload = OkHttpEventMapper.incomingText(text, now())
-        // آمار
         stats.value = stats.value.copy(bytesReceived = stats.value.bytesReceived + text.encodeToByteArray().size)
         events.tryEmit(TransportEvent.MessageReceived(payload))
     }
@@ -38,7 +37,6 @@ class WsOkHttpWebSocketListener(
     }
 
     override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
-        // OkHttp پیشنهاد می‌دهد close را بزنیم
         webSocket.close(code, reason)
     }
 

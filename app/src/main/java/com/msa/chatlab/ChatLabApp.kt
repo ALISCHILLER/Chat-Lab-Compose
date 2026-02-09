@@ -5,8 +5,9 @@ import com.msa.chatlab.di.ConnectionModule
 import com.msa.chatlab.di.DataModule
 import com.msa.chatlab.di.FeatureModule
 import com.msa.chatlab.di.StorageModule
-import com.msa.chatlab.di.appModule
-import com.msa.chatlab.di.coreModule
+import com.msa.chatlab.protocol.signalr.di.SignalRProtocolModule
+import com.msa.chatlab.protocol.socketio.di.SocketIoProtocolModule
+import com.msa.chatlab.protocol.websocket.ktor.di.KtorProtocolModule
 import com.msa.chatlab.protocol.websocket.okhttp.di.WsOkHttpProtocolModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.GlobalContext
@@ -19,13 +20,14 @@ class ChatLabApp : Application() {
         startKoin {
             androidContext(this@ChatLabApp)
             modules(
-                appModule,
-                coreModule,
-                DataModule,
                 StorageModule,
+                DataModule,
                 ConnectionModule,
                 FeatureModule,
-                WsOkHttpProtocolModule
+                WsOkHttpProtocolModule,
+                KtorProtocolModule,
+                SocketIoProtocolModule,
+                SignalRProtocolModule
             )
         }
 

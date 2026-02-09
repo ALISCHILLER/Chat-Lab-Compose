@@ -1,6 +1,6 @@
 package com.msa.chatlab.protocol.websocket.okhttp.mapper
 
-import com.msa.chatlab.core.protocol.api.event.TransportError
+import com.msa.chatlab.core.protocol.api.error.TransportError
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 

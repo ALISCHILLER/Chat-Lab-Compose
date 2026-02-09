@@ -10,12 +10,6 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collect
 import kotlin.math.max
 
-interface DeviceInfoProvider {
-    fun deviceModel(): String
-    fun osVersion(): String
-    fun networkLabel(): String
-}
-
 class ScenarioExecutor(
     private val scope: CoroutineScope,
     private val activeProfileStore: ActiveProfileStore,
@@ -29,21 +23,23 @@ class ScenarioExecutor(
         val result: RunResult
     )
 
-    private val events = mutableListOf<RunEvent>()
+    val events = mutableListOf<RunEvent>()
     private val metrics = MetricsCalculator()
 
     private var collectorJob: Job? = null
+    var currentRun: RunSession? = null
 
     suspend fun execute(scenario: Scenario): RunBundle {
         events.clear()
         metrics.counters.apply { sent = 0; received = 0; failed = 0; enqueued = 0 }
 
-        val profile = activeProfileStore.getActiveNow() ?: error("No active profile selected")
+        val profile = activeProfileStore.getActiveNow()
+            ?: error("No active profile selected")
 
         val startMs = System.currentTimeMillis()
         val runId = RunId("run-$startMs")
 
-        val session = RunSession(
+        currentRun = RunSession(
             runId = runId,
             scenario = scenario,
             profileName = profile.name,
@@ -123,7 +119,7 @@ class ScenarioExecutor(
         val result = metrics.buildResult(durationMs = scenario.durationMs)
 
         return RunBundle(
-            session = session,
+            session = requireNotNull(currentRun),
             events = events.toList(),
             result = result
         )
@@ -155,4 +151,13 @@ class ScenarioExecutor(
 
     private fun record(e: RunEvent) { events.add(e) }
     private fun nowTs() = TimestampMillis(System.currentTimeMillis())
+
+    sealed class RunEvent {
+        abstract val timestampMs: Long
+        data class Connected(override val timestampMs: Long = 0) : RunEvent()
+        data class Disconnected(val reason: String, override val timestampMs: Long = 0) : RunEvent()
+        data class MessageSent(val messageId: String, override val timestampMs: Long = 0) : RunEvent()
+        data class MessageReceived(override val timestampMs: Long = 0, val messageId: String? = null) : RunEvent()
+        data class Error(val message: String, override val timestampMs: Long = 0) : RunEvent()
+    }
 }

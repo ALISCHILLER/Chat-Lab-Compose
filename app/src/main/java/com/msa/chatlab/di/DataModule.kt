@@ -4,6 +4,8 @@ import com.msa.chatlab.core.data.active.ActiveProfileStore
 import com.msa.chatlab.core.data.active.InMemoryActiveProfileStore
 import com.msa.chatlab.core.data.codec.ProfileJsonCodec
 import com.msa.chatlab.core.data.manager.ProfileManager
+import com.msa.chatlab.core.data.outbox.OutboxQueue
+import com.msa.chatlab.core.data.outbox.RoomOutboxQueue
 import com.msa.chatlab.core.data.repository.ProfileRepository
 import com.msa.chatlab.core.data.repository.RoomProfileRepository
 import org.koin.dsl.module
@@ -16,7 +18,7 @@ val DataModule = module {
 
     single<ProfileRepository> {
         RoomProfileRepository(
-            dao = get(),          // ProfileDao از StorageModule
+            dao = get(),
             codec = get()
         )
     }
@@ -27,4 +29,6 @@ val DataModule = module {
             activeStore = get()
         )
     }
+
+    single<OutboxQueue> { RoomOutboxQueue(dao = get()) }
 }
