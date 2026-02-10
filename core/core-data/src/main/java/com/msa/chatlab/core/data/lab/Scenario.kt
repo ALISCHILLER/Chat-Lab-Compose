@@ -8,7 +8,11 @@ data class Scenario(
     val messageRatePerSecond: Double = 3.0,
     val burstSize: Int = 0,
     val seed: Long = 42,
-    val customDisconnects: List<DisconnectWindow> = emptyList()
+    val burstEvery: Int = 1,
+    val dropRatePercent: Int = 0,
+    val minExtraDelayMs: Long = 0L,
+    val maxExtraDelayMs: Long = 0L,
+    val disconnects: List<DisconnectWindow> = emptyList()
 ) {
     enum class Preset {
         Stable,          // بدون قطعی، نرخ ثابت
@@ -35,7 +39,7 @@ fun Scenario.defaultFor(preset: Scenario.Preset): Scenario = when (preset) {
         preset = Scenario.Preset.Intermittent,
         durationMs = 120_000,
         messageRatePerSecond = 2.0,
-        customDisconnects = listOf(
+        disconnects = listOf(
             Scenario.DisconnectWindow(30_000, 5_000),
             Scenario.DisconnectWindow(60_000, 5_000),
             Scenario.DisconnectWindow(90_000, 5_000)
@@ -46,7 +50,7 @@ fun Scenario.defaultFor(preset: Scenario.Preset): Scenario = when (preset) {
         preset = Scenario.Preset.OfflineBurst,
         durationMs = 300_000,
         messageRatePerSecond = 1.0,
-        customDisconnects = listOf(
+        disconnects = listOf(
             Scenario.DisconnectWindow(0, 300_000) // ۵ دقیقه آفلاین
         ),
         seed = System.currentTimeMillis()
@@ -55,12 +59,16 @@ fun Scenario.defaultFor(preset: Scenario.Preset): Scenario = when (preset) {
         preset = Scenario.Preset.Lossy,
         durationMs = 90_000,
         messageRatePerSecond = 5.0,
+        dropRatePercent = 10, // 10% packet loss
+        minExtraDelayMs = 50,
+        maxExtraDelayMs = 500,
         seed = System.currentTimeMillis()
     )
     Scenario.Preset.LoadBurst -> Scenario(
         preset = Scenario.Preset.LoadBurst,
         durationMs = 30_000,
         messageRatePerSecond = 50.0, // ۵۰ پیام در ثانیه
+        burstEvery = 1000,
         burstSize = 100,
         seed = System.currentTimeMillis()
     )

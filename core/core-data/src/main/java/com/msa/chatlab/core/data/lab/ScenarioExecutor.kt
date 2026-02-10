@@ -3,6 +3,7 @@ package com.msa.chatlab.core.data.lab
 import com.msa.chatlab.core.data.active.ActiveProfileStore
 import com.msa.chatlab.core.data.manager.ConnectionManager
 import com.msa.chatlab.core.data.manager.MessageSender
+import com.msa.chatlab.core.domain.lab.RunEvent
 import com.msa.chatlab.core.domain.value.RunId
 import com.msa.chatlab.core.domain.value.TimestampMillis
 import com.msa.chatlab.core.protocol.api.event.TransportEvent
@@ -68,9 +69,9 @@ class ScenarioExecutor(
             burstSize = scenario.burstSize
         ) { text ->
             // سناریوی lossy: drop/delay مصنوعی در سطح «آزمایشگاه»
-            if (chaos.shouldDrop(scenario.dropRatePercent)) {
+            if (chaos.shouldDrop(scenario.dropRatePercent / 100.0)) {
                 metrics.onFailed()
-                record(RunEvent.Failed(nowTs(), null, "lab_drop"))
+                record(RunEvent.Failed(t = nowTs(), messageId = null, error = "lab_drop"))
                 return@LoadGenerator
             }
             val extraDelay = chaos.extraDelayMs(scenario.minExtraDelayMs, scenario.maxExtraDelayMs)
@@ -89,10 +90,10 @@ class ScenarioExecutor(
 
                 if (mustDisconnect && connectionManager.isConnectedNow()) {
                     connectionManager.disconnect()
-                    record(RunEvent.Disconnected(nowTs(), "scheduled"))
+                    record(RunEvent.Disconnected(t = nowTs(), reason = "scheduled"))
                 } else if (!mustDisconnect && !connectionManager.isConnectedNow()) {
                     connectionManager.connect()
-                    record(RunEvent.Connected(nowTs()))
+                    record(RunEvent.Connected(t = nowTs()))
                 }
 
                 delay(100)
@@ -124,19 +125,19 @@ class ScenarioExecutor(
         collectorJob = scope.launch {
             connectionManager.events.collect { ev ->
                 when (ev) {
-                    is TransportEvent.Connected -> record(RunEvent.Connected(nowTs()))
-                    is TransportEvent.Disconnected -> record(RunEvent.Disconnected(nowTs(), ev.reason ?: "unknown"))
+                    is TransportEvent.Connected -> record(RunEvent.Connected(t = nowTs()))
+                    is TransportEvent.Disconnected -> record(RunEvent.Disconnected(t = nowTs(), reason = ev.reason ?: "unknown"))
                     is TransportEvent.MessageSent -> {
-                        metrics.onSent(ev.messageId.value, System.currentTimeMillis())
-                        record(RunEvent.Sent(nowTs(), ev.messageId.value))
+                        metrics.onSent(ev.messageId.value, nowTs().value)
+                        record(RunEvent.Sent(t = nowTs(), messageId = ev.messageId.value))
                     }
                     is TransportEvent.MessageReceived -> {
-                        metrics.onReceived(ev.payload.envelope.messageId.value, System.currentTimeMillis())
-                        record(RunEvent.Received(nowTs(), ev.payload.envelope.messageId.value))
+                        metrics.onReceived(ev.payload.envelope.messageId.value, nowTs().value)
+                        record(RunEvent.Received(t = nowTs(), messageId = ev.payload.envelope.messageId.value))
                     }
                     is TransportEvent.ErrorOccurred -> {
                         metrics.onFailed()
-                        record(RunEvent.Failed(nowTs(), null, ev.error.message ?: "error"))
+                        record(RunEvent.Failed(t = nowTs(), messageId = null, error = ev.error.message ?: "error"))
                     }
                 }
             }
@@ -145,13 +146,4 @@ class ScenarioExecutor(
 
     private fun record(e: RunEvent) { events.add(e) }
     private fun nowTs() = TimestampMillis(System.currentTimeMillis())
-
-    sealed class RunEvent {
-        abstract val timestampMs: Long
-        data class Connected(override val timestampMs: Long = 0) : RunEvent()
-        data class Disconnected(val reason: String, override val timestampMs: Long = 0) : RunEvent()
-        data class MessageSent(val messageId: String, override val timestampMs: Long = 0) : RunEvent()
-        data class MessageReceived(override val timestampMs: Long = 0, val messageId: String? = null) : RunEvent()
-        data class Error(val message: String, override val timestampMs: Long = 0) : RunEvent()
-    }
 }

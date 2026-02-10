@@ -2,6 +2,8 @@ package com.msa.chatlab.core.data.lab
 
 import com.msa.chatlab.core.data.codec.ProfileJsonCodec
 import com.msa.chatlab.core.data.manager.ProfileManager
+import com.msa.chatlab.core.domain.lab.RunEvent
+import com.msa.chatlab.core.domain.lab.timestampMs
 import kotlinx.coroutines.runBlocking
 
 class SessionExporter(
@@ -11,7 +13,7 @@ class SessionExporter(
     fun exportRun(
         runSession: RunSession,
         runResult: RunResult,
-        events: List<ScenarioExecutor.RunEvent>
+        events: List<RunEvent>
     ): Map<String, String> {
         val profileJson = runBlocking { profileManager.getProfile(runSession.runId.let { com.msa.chatlab.core.domain.value.ProfileId(it.value) })?.let { codec.encode(it) } ?: "{}" }
 
@@ -19,11 +21,11 @@ class SessionExporter(
             appendLine("timestamp,event_type,message_id,reason")
             events.forEach { ev ->
                 val (eventType, messageId, reason) = when (ev) {
-                    is ScenarioExecutor.RunEvent.Connected -> Triple("connected", "", "")
-                    is ScenarioExecutor.RunEvent.Disconnected -> Triple("disconnected", "", ev.reason)
-                    is ScenarioExecutor.RunEvent.MessageSent -> Triple("sent", ev.messageId, "")
-                    is ScenarioExecutor.RunEvent.MessageReceived -> Triple("received", ev.messageId ?: "", "")
-                    is ScenarioExecutor.RunEvent.Error -> Triple("error", "", ev.message)
+                    is RunEvent.Connected -> Triple("connected", "", "")
+                    is RunEvent.Disconnected -> Triple("disconnected", "", ev.reason)
+                    is RunEvent.Sent -> Triple("sent", ev.messageId, "")
+                    is RunEvent.Received -> Triple("received", ev.messageId, "")
+                    is RunEvent.Failed -> Triple("failed", ev.messageId ?: "", ev.error)
                 }
                 appendLine("${ev.timestampMs},$eventType,$messageId,$reason")
             }

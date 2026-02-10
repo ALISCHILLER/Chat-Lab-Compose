@@ -3,6 +3,7 @@ package com.msa.chatlab.core.data.manager
 import com.msa.chatlab.core.data.registry.ProtocolResolver
 import com.msa.chatlab.core.protocol.api.contract.ConnectionState
 import com.msa.chatlab.core.protocol.api.contract.TransportContract
+import com.msa.chatlab.core.protocol.api.error.TransportError
 import com.msa.chatlab.core.protocol.api.event.TransportEvent
 import com.msa.chatlab.core.protocol.api.event.TransportStatsEvent
 import kotlinx.coroutines.CoroutineScope
@@ -31,6 +32,15 @@ class ConnectionManager(
     private val _stats = MutableStateFlow(TransportStatsEvent())
     val stats: StateFlow<TransportStatsEvent> = _stats.asStateFlow()
 
+    fun isConnectedNow(): Boolean = _connectionState.value is ConnectionState.Connected
+
+    suspend fun send(payload: ByteArray) {
+        if (!isConnectedNow()) throw IllegalStateException("Not connected")
+        val t = _transport.value ?: throw IllegalStateException("Transport not available")
+        // TODO: This needs to be updated to construct an OutgoingPayload and call the transport's send method.
+        throw UnsupportedOperationException("TransportContract send() not wired yet")
+    }
+
     /**
      * Transport را بر اساس Active Profile resolve می‌کند.
      * اگر transport قبلی وجود داشته باشد، disconnect می‌کند.
@@ -56,7 +66,7 @@ class ConnectionManager(
             .onFailure { ex ->
                 // اگر خود transport state درست بدهد، اینجا فقط event می‌فرستیم
                 _events.tryEmit(TransportEvent.ErrorOccurred(
-                    com.msa.chatlab.core.protocol.api.event.TransportError(
+                    TransportError(
                         code = "CONNECT_FAIL",
                         message = ex.message ?: "connect failed",
                         throwable = ex

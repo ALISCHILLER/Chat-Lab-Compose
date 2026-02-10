@@ -2,42 +2,36 @@ package com.msa.chatlab.core.data.manager
 
 import com.msa.chatlab.core.data.outbox.OutboxItem
 import com.msa.chatlab.core.data.outbox.OutboxQueue
-import com.msa.chatlab.core.domain.value.MessageId
-import com.msa.chatlab.core.protocol.api.payload.Envelope
-import com.msa.chatlab.core.protocol.api.payload.OutgoingPayload
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import java.util.UUID
 
 class MessageSender(
     private val connectionManager: ConnectionManager,
-    private val outbox: OutboxQueue
+    private val outboxQueue: OutboxQueue,
+    private val scope: CoroutineScope,
 ) {
-    private val _simulateOffline = MutableStateFlow(false)
-    val simulateOffline = _simulateOffline.asStateFlow()
+    fun sendText(text: String, destination: String) {
+        scope.launch {
+            val item = OutboxItem(
+                id = UUID.randomUUID().toString(),
+                text = text,
+                attempt = 0,
+                createdAt = System.currentTimeMillis()
+            )
 
-    fun setSimulateOffline(enabled: Boolean) {
-        _simulateOffline.value = enabled
-    }
+            if (!connectionManager.isConnectedNow()) {
+                outboxQueue.enqueue(item)
+                return@launch
+            }
 
-    fun newMessageId(): MessageId = MessageId("m-${System.nanoTime()}")
-
-    suspend fun sendText(text: String, destination: String = "default"): MessageId {
-        val id = newMessageId()
-        val offline = _simulateOffline.value || !connectionManager.isConnectedNow()
-        if (offline) {
-            outbox.enqueue(id, text)
-            return id
+            try {
+                // NOTE: The `destination` parameter is currently ignored as the updated
+                // ConnectionManager#send only accepts a ByteArray payload.
+                connectionManager.send(text.encodeToByteArray())
+            } catch (t: Throwable) {
+                outboxQueue.enqueue(item.copy(lastError = t.message))
+            }
         }
-        forceSend(id, text, destination)
-        return id
-    }
-
-    suspend fun forceSend(messageId: MessageId, text: String, destination: String) {
-        val payload = OutgoingPayload(
-            envelope = Envelope.text(text, messageId),
-            destination = destination
-        )
-        connectionManager.send(payload)
     }
 }
