@@ -14,7 +14,7 @@ import androidx.room.Index
 data class MessageEntity(
     @ColumnInfo(name = "profile_id") val profileId: String,
     @ColumnInfo(name = "message_id") val messageId: String,
-    @ColumnInfo(name = "direction") val direction: String,
+    @ColumnInfo(name = "direction") val direction: String, // "OUT" / "IN"
     @ColumnInfo(name = "text") val text: String,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "queued") val queued: Boolean = false,

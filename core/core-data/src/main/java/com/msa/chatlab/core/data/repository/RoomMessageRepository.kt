@@ -1,12 +1,11 @@
 package com.msa.chatlab.core.data.repository
 
 import com.msa.chatlab.core.data.active.ActiveProfileStore
+import com.msa.chatlab.core.data.mapper.toEntity
+import com.msa.chatlab.core.data.mapper.toUi
 import com.msa.chatlab.core.storage.dao.MessageDao
-import com.msa.chatlab.core.storage.entity.MessageEntity
 import com.msa.chatlab.featurechat.model.ChatMessageUi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 class RoomMessageRepository(
@@ -15,18 +14,17 @@ class RoomMessageRepository(
 ) : MessageRepository {
 
     override fun observeMessages(profileId: String): Flow<List<ChatMessageUi>> {
-        return dao.observeByProfile(profileId).map { entities -> entities.map { it.toDomain() } }
+        return dao.observeByProfile(profileId).map { entities -> entities.map { it.toUi() } }
     }
 
     override suspend fun upsert(message: ChatMessageUi) {
         val profile = activeProfileStore.getActiveNow() ?: return
-        val entity = MessageEntity.fromDomain(profile.id.value, message)
-        dao.insert(entity)
+        dao.insert(message.toEntity(profile.id.value))
     }
 
     override suspend fun upsertAll(messages: List<ChatMessageUi>) {
         val profile = activeProfileStore.getActiveNow() ?: return
-        val entities = messages.map { MessageEntity.fromDomain(profile.id.value, it) }
+        val entities = messages.map { it.toEntity(profile.id.value) }
         dao.insertAll(entities)
     }
 

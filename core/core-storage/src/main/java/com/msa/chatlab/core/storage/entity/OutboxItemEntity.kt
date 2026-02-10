@@ -2,19 +2,23 @@ package com.msa.chatlab.core.storage.entity
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
-import androidx.room.Index
+import androidx.room.PrimaryKey
 
-@Entity(
-    tableName = "outbox",
-    primaryKeys = ["profile_id", "message_id"],
-    indices = [
-        Index(value = ["profile_id", "created_at"])
-    ]
-)
+@Entity(tableName = "outbox_items")
 data class OutboxItemEntity(
-    @ColumnInfo(name = "profile_id") val profileId: String,
+    @PrimaryKey @ColumnInfo(name = "id") val id: String,
+
+    // Envelope fields
     @ColumnInfo(name = "message_id") val messageId: String,
-    @ColumnInfo(name = "text") val text: String,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+    @ColumnInfo(name = "content_type") val contentType: String,
+    @ColumnInfo(name = "headers_json") val headersJson: String,
+    @ColumnInfo(name = "body") val body: ByteArray,
+
+    // Destination
+    @ColumnInfo(name = "destination") val destination: String?,
+
+    // Retry info
     @ColumnInfo(name = "attempt") val attempt: Int,
-    @ColumnInfo(name = "created_at") val createdAt: Long
+    @ColumnInfo(name = "last_error") val lastError: String?
 )
