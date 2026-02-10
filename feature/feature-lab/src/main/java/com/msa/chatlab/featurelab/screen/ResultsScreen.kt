@@ -58,7 +58,7 @@ private fun ResultCard(result: RunResult) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Run Summary", style = MaterialTheme.typography.titleMedium)
-            Text(result.toSummary())
+            Text(text = result.toString())
         }
     }
 }
