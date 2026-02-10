@@ -13,8 +13,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.io.File
 
 class LabViewModel(
     private val profileManager: ProfileManager,
@@ -39,7 +39,7 @@ class LabViewModel(
             is LabUiEvent.StartLossy -> startScenario(Scenario.Preset.Lossy)
             is LabUiEvent.StartLoadBurst -> startScenario(Scenario.Preset.LoadBurst)
             is LabUiEvent.Stop -> stopExecution()
-            is LabUiEvent.ClearResults -> _uiState.value = _uiState.value.copy(runResult = null, errorMessage = null, pastResults = emptyList())
+            is LabUiEvent.ClearResults -> _uiState.update { it.copy(runResult = null, errorMessage = null, pastResults = emptyList()) }
         }
     }
 
@@ -47,49 +47,48 @@ class LabViewModel(
         if (_uiState.value.isRunning) return
 
         val scenario = Scenario.defaultFor(preset)
-        _uiState.value = _uiState.value.copy(
+        _uiState.update { it.copy(
             isRunning = true,
             activeScenario = scenario,
             runResult = null,
             progressPercent = 0,
             errorMessage = null
-        )
+        ) }
 
         executionJob = viewModelScope.launch {
             try {
                 // اجرای سناریو
-                val result = scenarioExecutor.execute(scenario)
+                val runBundle = scenarioExecutor.execute(scenario)
 
                 // به‌روزرسانی نتایج
                 _uiState.update { it.copy(
                     isRunning = false,
-                    runResult = result,
+                    runResult = runBundle.result,
                     progressPercent = 100,
-                    pastResults = it.pastResults + result
+                    pastResults = it.pastResults + runBundle.result
                 ) }
 
                 // صدور خروجی
-                val bundle = sessionExporter.exportRun(
-                    runSession = requireNotNull(scenarioExecutor.currentRun),
-                    runResult = result,
-                    events = scenarioExecutor.events,
-                    outputDir = File(context.filesDir, "lab_runs/${System.currentTimeMillis()}")
+                val files = sessionExporter.exportRun(
+                    runSession = runBundle.session,
+                    runResult = runBundle.result,
+                    events = runBundle.events
                 )
 
-                _uiEffect.emit(LabUiEffect.ShowExportDialog(bundle))
-                _uiEffect.emit(LabUiEffect.ShowSnackbar("Scenario completed successfully"))
+                _uiEffect.tryEmit(LabUiEffect.ShowExportDialog(files))
+                _uiEffect.tryEmit(LabUiEffect.ShowSnackbar("Scenario completed successfully"))
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
+                _uiState.update { it.copy(
                     isRunning = false,
                     errorMessage = e.message ?: "Execution failed"
-                )
-                _uiEffect.emit(LabUiEffect.ShowSnackbar("Error: ${e.message}"))
+                ) }
+                _uiEffect.tryEmit(LabUiEffect.ShowSnackbar("Error: ${e.message}"))
             }
         }
     }
 
     private fun stopExecution() {
         executionJob?.cancel()
-        _uiState.value = _uiState.value.copy(isRunning = false)
+        _uiState.update { it.copy(isRunning = false) }
     }
 }

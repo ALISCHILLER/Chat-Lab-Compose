@@ -128,8 +128,9 @@ class ScenarioExecutor(
                     is TransportEvent.Connected -> record(RunEvent.Connected(t = nowTs()))
                     is TransportEvent.Disconnected -> record(RunEvent.Disconnected(t = nowTs(), reason = ev.reason ?: "unknown"))
                     is TransportEvent.MessageSent -> {
-                        metrics.onSent(ev.messageId.value, nowTs().value)
-                        record(RunEvent.Sent(t = nowTs(), messageId = ev.messageId.value))
+                        // TransportEvent.MessageSent currently exposes messageId as String
+                        metrics.onSent(ev.messageId, nowTs().value)
+                        record(RunEvent.Sent(t = nowTs(), messageId = ev.messageId))
                     }
                     is TransportEvent.MessageReceived -> {
                         metrics.onReceived(ev.payload.envelope.messageId.value, nowTs().value)

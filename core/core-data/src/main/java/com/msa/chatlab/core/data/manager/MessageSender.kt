@@ -13,9 +13,15 @@ class MessageSender(
 ) {
     fun sendText(text: String, destination: String) {
         scope.launch {
+            val messageId = UUID.randomUUID().toString()
+
             val item = OutboxItem(
                 id = UUID.randomUUID().toString(),
-                text = text,
+                messageId = messageId,
+                destination = destination,
+                contentType = "text/plain",
+                headersJson = "{}",
+                body = text.encodeToByteArray(),
                 attempt = 0,
                 createdAt = System.currentTimeMillis()
             )

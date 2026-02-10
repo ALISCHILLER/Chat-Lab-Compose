@@ -1,23 +1,29 @@
 package com.msa.chatlab.featurechat.route
 
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.msa.chatlab.featurechat.screen.ChatScreen
 import com.msa.chatlab.featurechat.vm.ChatViewModel
-import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun ChatRoute(padding: PaddingValues) {
-    val vm: ChatViewModel = koinViewModel()
-    val state = vm.uiState.collectAsState()
+fun ChatRoute() {
+    val vm: ChatViewModel = viewModel()
+    val state by vm.uiState.collectAsStateWithLifecycle()
+
+    var input by rememberSaveable { mutableStateOf("") }
+    var destination by rememberSaveable { mutableStateOf("default") }
 
     ChatScreen(
-        state = state.value,
-        onInputChange = vm::onInputChange,
-        onSend = vm::send,
-        onToggleSimOffline = vm::toggleSimulateOffline,
-        onClearError = vm::clearError,
-        padding = padding
+        state = state,
+        input = input,
+        destination = destination,
+        onInputChange = { input = it },
+        onDestinationChange = { destination = it },
+        onSend = {
+            vm.send(input, destination)
+            input = ""
+        },
+        onClearError = vm::clearError
     )
 }

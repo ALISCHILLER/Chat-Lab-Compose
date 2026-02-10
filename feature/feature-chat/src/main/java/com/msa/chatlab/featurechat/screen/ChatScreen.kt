@@ -7,105 +7,65 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.msa.chatlab.core.protocol.api.contract.ConnectionState
-import com.msa.chatlab.featurechat.model.ChatMessageUi
 import com.msa.chatlab.featurechat.state.ChatUiState
 
 @Composable
 fun ChatScreen(
     state: ChatUiState,
+    input: String,
+    destination: String,
     onInputChange: (String) -> Unit,
+    onDestinationChange: (String) -> Unit,
     onSend: () -> Unit,
-    onToggleSimOffline: () -> Unit,
-    onClearError: () -> Unit,
-    padding: PaddingValues
+    onClearError: () -> Unit
 ) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(padding),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Text("Chat", style = MaterialTheme.typography.headlineSmall)
+    Column(Modifier.fillMaxSize().padding(16.dp)) {
 
-        Card {
-            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Active: ${state.activeProfileName}")
-                Text("State: ${state.connectionState.pretty()}")
+        Text(text = "Profile: ${state.profileName}")
+        Spacer(Modifier.height(8.dp))
+        Text(text = "Outbox: ${state.outboxCount}")
 
-                // ✅ Outbox counter
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("📤 Outbox: ${state.outboxCount}", style = MaterialTheme.typography.titleMedium)
-                    AssistChip(
-                        onClick = onToggleSimOffline,
-                        label = { Text(if (state.simulateOffline) "Sim Offline: ON" else "Sim Offline: OFF") }
-                    )
-                }
-
-                state.lastEvent?.let { Text("Last: $it") }
-            }
+        state.error?.let { msg ->
+            Spacer(Modifier.height(8.dp))
+            AssistChip(
+                onClick = onClearError,
+                label = { Text(text = msg) }
+            )
         }
+
+        Spacer(Modifier.height(12.dp))
 
         LazyColumn(
             modifier = Modifier.weight(1f).fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            contentPadding = PaddingValues(vertical = 8.dp)
+            reverseLayout = true
         ) {
-            items(state.messages) { m ->
-                MessageBubble(m)
+            items(state.messages.reversed()) { m ->
+                Text(text = "${m.from}: ${m.text}")
+                Spacer(Modifier.height(6.dp))
             }
         }
 
-        state.error?.let {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
-                Row(
-                    Modifier.fillMaxWidth().padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(err, modifier = Modifier.weight(1f))
-                    Spacer(Modifier.width(8.dp))
-                    OutlinedButton(onClick = onClearError) { Text("Clear") }
-                }
-            }
-        }
+        Spacer(Modifier.height(12.dp))
 
-        Row(
+        OutlinedTextField(
+            value = destination,
+            onValueChange = onDestinationChange,
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+            label = { Text(text = "Destination") }
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
-                value = state.input,
+                value = input,
                 onValueChange = onInputChange,
                 modifier = Modifier.weight(1f),
-                label = { Text("Message") }
+                label = { Text(text = "Message") }
             )
-            Button(onClick = onSend) { Text("Send") }
-        }
-    }
-}
-
-@Composable
-private fun MessageBubble(m: ChatMessageUi) {
-    val title = if (m.direction == ChatMessageUi.Direction.OUT) "You" else "Server"
-
-    val colors = if (m.queued && m.direction == ChatMessageUi.Direction.OUT) {
-        CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
-    } else {
-        CardDefaults.cardColors()
-    }
-
-    Card(colors = colors) {
-        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(title, style = MaterialTheme.typography.titleSmall)
-                if (m.queued) Text("Queued", style = MaterialTheme.typography.labelMedium)
+            Button(onClick = onSend) {
+                Text(text = "Send")
             }
-            Text(m.text)
         }
     }
-}
-
-private fun ConnectionState.pretty(): String = when (this) {
-    is ConnectionState.Idle -> "Idle"
-    is ConnectionState.Connecting -> "Connecting..."
-    is ConnectionState.Connected -> "Connected"
-    is ConnectionState.Disconnected -> "Disconnected (${reason ?: "unknown"})"
 }
