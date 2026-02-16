@@ -5,6 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.msa.chatlab.core.data.lab.*
 import com.msa.chatlab.core.data.manager.ProfileManager
+import com.msa.chatlab.core.domain.model.Scenario
+import com.msa.chatlab.core.domain.model.ScenarioPreset
+import com.msa.chatlab.core.data.lab.defaultFor
 import com.msa.chatlab.feature.lab.state.LabUiEffect
 import com.msa.chatlab.feature.lab.state.LabUiEvent
 import com.msa.chatlab.feature.lab.state.LabUiState
@@ -33,20 +36,20 @@ class LabViewModel(
 
     fun onEvent(event: LabUiEvent) {
         when (event) {
-            is LabUiEvent.StartStable -> startScenario(Scenario.Preset.Stable)
-            is LabUiEvent.StartIntermittent -> startScenario(Scenario.Preset.Intermittent)
-            is LabUiEvent.StartOfflineBurst -> startScenario(Scenario.Preset.OfflineBurst)
-            is LabUiEvent.StartLossy -> startScenario(Scenario.Preset.Lossy)
-            is LabUiEvent.StartLoadBurst -> startScenario(Scenario.Preset.LoadBurst)
+            is LabUiEvent.StartStable -> startScenario(ScenarioPreset.Stable)
+            is LabUiEvent.StartIntermittent -> startScenario(ScenarioPreset.Intermittent)
+            is LabUiEvent.StartOfflineBurst -> startScenario(ScenarioPreset.OfflineBurst)
+            is LabUiEvent.StartLossy -> startScenario(ScenarioPreset.Lossy)
+            is LabUiEvent.StartLoadBurst -> startScenario(ScenarioPreset.LoadBurst)
             is LabUiEvent.Stop -> stopExecution()
             is LabUiEvent.ClearResults -> _uiState.update { it.copy(runResult = null, errorMessage = null, pastResults = emptyList()) }
         }
     }
 
-    private fun startScenario(preset: Scenario.Preset) {
+    private fun startScenario(preset: ScenarioPreset) {
         if (_uiState.value.isRunning) return
 
-        val scenario = com.msa.chatlab.core.domain.model.lab.Scenario().defaultFor(preset)
+        val scenario = Scenario().defaultFor(preset)
         _uiState.update { it.copy(
             isRunning = true,
             activeScenario = scenario,

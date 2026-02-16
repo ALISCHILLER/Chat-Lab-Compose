@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.msa.chatlab.feature.settings.state.SettingsUiEvent
 import com.msa.chatlab.feature.settings.state.SettingsUiState
-import com.msa.chatlab.feature.settings.screen.ProfileCard
+import com.msa.chatlab.feature.settings.component.common.ProfileCard
 
 @Composable
 fun SettingsScreen(
@@ -39,8 +39,8 @@ fun SettingsScreen(
         Button(onClick = onGoDebug) { Text("Go to Debug") }
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(state.profiles) { profile ->
-                ProfileCard(profile = profile, onEvent = onEvent)
+            items(state.cards) { card ->
+                ProfileCard(profile = card, onEvent = onEvent)
             }
         }
     }

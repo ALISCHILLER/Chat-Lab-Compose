@@ -15,7 +15,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -73,14 +72,14 @@ private fun LatencyChart(
     results: List<RunResult>,
     modifier: Modifier = Modifier,
 ) {
-    val p95latencies = results.map { it.p95LatencyMillis }
-    val maxLatency = p95latencies.maxOrNull()?.toFloat() ?: 0f
+    val p95latencies = results.map { it.latencyP95Ms }
+    val maxLatency = p95latencies.maxOfOrNull { it ?: 0L }?.toFloat() ?: 0f
 
     Canvas(modifier = modifier) {
         val path = Path()
         p95latencies.forEachIndexed { index, latency ->
             val x = size.width * (index.toFloat() / (p95latencies.size - 1).coerceAtLeast(1))
-            val y = size.height * (1 - (latency.toFloat() / maxLatency).coerceIn(0f, 1f))
+            val y = size.height * (1 - ((latency ?: 0L).toFloat() / maxLatency).coerceIn(0f, 1f))
             if (index == 0) {
                 path.moveTo(x, y)
             } else {

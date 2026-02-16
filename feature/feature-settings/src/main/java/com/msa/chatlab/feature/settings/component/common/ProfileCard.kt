@@ -12,21 +12,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.msa.chatlab.feature.settings.screen.ProtocolBadge
-import com.msa.chatlab.feature.settings.state.ProfileListItem
+import com.msa.chatlab.feature.settings.state.SettingsUiEvent
+import com.msa.chatlab.feature.settings.state.UiProfileCard
 
 @Composable
 fun ProfileCard(
-    profile: ProfileListItem,
-    isActive: Boolean,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    onActivate: () -> Unit
+    profile: UiProfileCard,
+    onEvent: (SettingsUiEvent) -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = if (isActive) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+            containerColor = if (profile.isActive) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
         )
     ) {
         Row(
@@ -40,12 +37,12 @@ fun ProfileCard(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = profile.name,
+                        text = profile.title,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        fontWeight = if (profile.isActive) FontWeight.Bold else FontWeight.Normal,
+                        color = if (profile.isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                     )
-                    if (isActive) {
+                    if (profile.isActive) {
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
                             contentDescription = "Active",
@@ -56,49 +53,30 @@ fun ProfileCard(
                 }
 
                 Text(
-                    text = profile.description.ifBlank { "No description" },
+                    text = profile.subtitle.ifBlank { "No description" },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp)
                 )
-
-                Row(
-                    modifier = Modifier.padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    ProtocolBadge(profile.protocolType)
-                    profile.tags.take(2).forEach { tag ->
-                        Surface(
-                            shape = MaterialTheme.shapes.small,
-                            color = Color.Gray.copy(alpha = 0.1f)
-                        ) {
-                            Text(
-                                text = "#$tag",
-                                style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
-                }
             }
 
             Column(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                IconButton(onClick = onEdit) {
+                IconButton(onClick = { onEvent(SettingsUiEvent.Edit(profile.id)) }) {
                     Icon(Icons.Default.Edit, contentDescription = "Edit")
                 }
-                IconButton(onClick = onDelete) {
+                IconButton(onClick = { onEvent(SettingsUiEvent.Delete(profile.id)) }) {
                     Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
                 }
                 Button(
-                    onClick = onActivate,
-                    enabled = !isActive,
+                    onClick = { onEvent(SettingsUiEvent.Apply(profile.id)) },
+                    enabled = !profile.isActive,
                     shape = MaterialTheme.shapes.small,
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
                 ) {
-                    Text(if (isActive) "Active" else "Activate")
+                    Text(if (profile.isActive) "Active" else "Activate")
                 }
             }
         }

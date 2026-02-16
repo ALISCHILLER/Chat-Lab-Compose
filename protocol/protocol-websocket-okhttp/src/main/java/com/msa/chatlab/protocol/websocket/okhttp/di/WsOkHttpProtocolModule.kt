@@ -5,12 +5,10 @@ import com.msa.chatlab.core.domain.model.Profile
 import com.msa.chatlab.core.domain.model.ProtocolType
 import com.msa.chatlab.core.protocol.api.contract.TransportContract
 import com.msa.chatlab.protocol.websocket.okhttp.transport.WsOkHttpTransport
-import org.koin.core.module.dsl.factoryOf
-import org.koin.dsl.bind
 import org.koin.dsl.module
 
 val WsOkHttpProtocolModule = module {
-    factoryOf(::WsOkHttpTransport) { bind<TransportContract>() }
+    factory { (profile: Profile) -> WsOkHttpTransport(profile) }
     factory<ProtocolBinding> {
         object : ProtocolBinding {
             override val type: ProtocolType = ProtocolType.WS_OKHTTP

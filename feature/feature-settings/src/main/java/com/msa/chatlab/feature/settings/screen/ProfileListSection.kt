@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.msa.chatlab.feature.settings.component.common.ProfileCard
 import com.msa.chatlab.feature.settings.state.SettingsUiEvent
 import com.msa.chatlab.feature.settings.state.SettingsUiState
 
@@ -49,12 +50,8 @@ fun ProfileListSection(
         LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(state.cards, key = { it.id }) { card ->
                 ProfileCard(
-                    card = card,
-                    onApply = { onEvent(SettingsUiEvent.Apply(card.id)) },
-                    onEdit = { onEvent(SettingsUiEvent.Edit(card.id)) },
-                    onDuplicate = { onEvent(SettingsUiEvent.Duplicate(card.id)) },
-                    onExport = { onEvent(SettingsUiEvent.Export(card.id)) },
-                    onDelete = { onEvent(SettingsUiEvent.Delete(card.id)) }
+                    profile = card,
+                    onEvent = onEvent
                 )
             }
         }

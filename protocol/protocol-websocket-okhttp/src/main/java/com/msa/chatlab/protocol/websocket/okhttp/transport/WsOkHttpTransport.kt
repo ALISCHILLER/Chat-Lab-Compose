@@ -2,7 +2,7 @@ package com.msa.chatlab.protocol.websocket.okhttp.transport
 
 import com.msa.chatlab.core.domain.model.Profile
 import com.msa.chatlab.core.protocol.api.contract.ConnectionState
-import com.msa.chatlab.core.protocol.api.contract.TransportCapabilities
+import com.msa.chatlab.core.protocol.api.TransportCapabilities
 import com.msa.chatlab.core.protocol.api.contract.TransportContract
 import com.msa.chatlab.core.protocol.api.event.TransportEvent
 import com.msa.chatlab.core.protocol.api.event.TransportStatsEvent
