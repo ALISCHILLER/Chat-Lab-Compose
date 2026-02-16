@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.msa.chatlab.featuresettings"
+    namespace = "com.msa.chatlab.feature.settings"
     compileSdk = 34
 
     defaultConfig {
@@ -40,6 +40,7 @@ dependencies {
     implementation(libs.koin.compose)
 
     // Core dependencies
+    implementation(project(":core:core-common"))
     implementation(project(":core:core-domain"))
     implementation(project(":core:core-data"))
 }

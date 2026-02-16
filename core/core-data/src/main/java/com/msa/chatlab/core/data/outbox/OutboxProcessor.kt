@@ -1,10 +1,12 @@
 package com.msa.chatlab.core.data.outbox
 
-import com.msa.chatlab.core.data.repository.ActiveProfileStore
-import com.msa.chatlab.core.data.repository.ConnectionManager
+import com.msa.chatlab.core.data.active.ActiveProfileStore
+import com.msa.chatlab.core.data.manager.ConnectionManager
 import com.msa.chatlab.core.domain.model.RetryPolicy
+import com.msa.chatlab.core.domain.value.MessageId
 import com.msa.chatlab.core.protocol.api.contract.ConnectionState
-import com.msa.chatlab.core.protocol.api.contract.OutgoingPayload
+import com.msa.chatlab.core.protocol.api.payload.Envelope
+import com.msa.chatlab.core.protocol.api.payload.OutgoingPayload
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -35,7 +37,7 @@ class OutboxProcessor(
     private suspend fun flush() {
         while (true) {
             val item = outboxQueue.peekOldest() ?: break
-            val profile = activeProfileStore.observe().first()
+            val profile = activeProfileStore.activeProfile.first()
             val retryPolicy = profile?.retryPolicy ?: RetryPolicy()
 
             try {
@@ -44,7 +46,8 @@ class OutboxProcessor(
                     continue
                 }
 
-                val payload = OutgoingPayload.Text(item.messageId, item.destination, item.body.toString(Charsets.UTF_8))
+                val envelope = Envelope.text(item.body.toString(Charsets.UTF_8), MessageId(item.messageId))
+                val payload = OutgoingPayload(envelope, item.destination)
                 connectionManager.send(payload)
                 outboxQueue.remove(item.id)
             } catch (e: Exception) {

@@ -2,7 +2,7 @@ package com.msa.chatlab.core.data.manager
 
 import com.msa.chatlab.core.data.registry.ProtocolResolver
 import com.msa.chatlab.core.protocol.api.contract.ConnectionState
-import com.msa.chatlab.core.protocol.api.contract.OutgoingPayload
+import com.msa.chatlab.core.protocol.api.payload.OutgoingPayload
 import com.msa.chatlab.core.protocol.api.contract.TransportContract
 import com.msa.chatlab.core.protocol.api.error.TransportError
 import com.msa.chatlab.core.protocol.api.event.TransportEvent

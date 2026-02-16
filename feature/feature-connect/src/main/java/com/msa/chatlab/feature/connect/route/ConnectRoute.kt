@@ -15,7 +15,8 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun ConnectRoute(
-    padding: PaddingValues
+    padding: PaddingValues,
+    onGoSettings: () -> Unit
 ) {
     val vm: ConnectViewModel = koinViewModel()
     val state by vm.state.collectAsState()
@@ -32,6 +33,7 @@ fun ConnectRoute(
     ConnectScreen(
         state = state,
         onEvent = vm::onEvent,
-        padding = padding
+        padding = padding,
+        onGoSettings = onGoSettings
     )
 }

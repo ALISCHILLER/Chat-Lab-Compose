@@ -2,7 +2,9 @@ package com.msa.chatlab.core.data.manager
 
 import com.msa.chatlab.core.data.outbox.OutboxItem
 import com.msa.chatlab.core.data.outbox.OutboxQueue
-import com.msa.chatlab.core.protocol.api.contract.OutgoingPayload
+import com.msa.chatlab.core.domain.value.MessageId
+import com.msa.chatlab.core.protocol.api.payload.Envelope
+import com.msa.chatlab.core.protocol.api.payload.OutgoingPayload
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -36,7 +38,8 @@ class MessageSender(
             }
 
             try {
-                val payload = OutgoingPayload.Text(messageId, destination, text)
+                val envelope = Envelope.text(text, MessageId(messageId))
+                val payload = OutgoingPayload(envelope, destination)
                 connectionManager.send(payload)
             } catch (t: Throwable) {
                 outboxQueue.enqueue(item.copy(lastError = t.message))
