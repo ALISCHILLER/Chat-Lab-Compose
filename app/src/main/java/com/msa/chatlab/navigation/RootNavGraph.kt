@@ -1,53 +1,55 @@
 package com.msa.chatlab.navigation
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.msa.chatlab.featurechat.route.ChatRoute
-import com.msa.chatlab.featureconnect.route.ConnectRoute
-import com.msa.chatlab.featuredebug.route.DebugRoute
-import com.msa.chatlab.featurelab.route.LabRoute
-import com.msa.chatlab.featuresettings.route.SettingsRoute
+import com.msa.chatlab.feature.chat.route.ChatRoute
+import com.msa.chatlab.feature.connect.route.ConnectRoute
+import com.msa.chatlab.feature.debug.route.DebugRoute
+import com.msa.chatlab.feature.lab.route.LabRoute
+import com.msa.chatlab.feature.settings.route.SettingsRoute
 
 @Composable
-fun RootNavGraph() {
+fun RootNavGraph(padding: PaddingValues) {
     val navController = rememberNavController()
 
     NavHost(
         navController = navController,
-        startDestination = Destinations.Settings
+        startDestination = Destinations.Settings.route
     ) {
-        composable(Destinations.Settings) {
+        composable(Destinations.Settings.route) {
             SettingsRoute(
-                onGoLab = { navController.navigate(Destinations.Lab) },
-                onGoConnect = { navController.navigate(Destinations.Connect) },
-                onGoChat = { navController.navigate(Destinations.Chat) },
-                onGoDebug = { navController.navigate(Destinations.Debug) }
+                padding = padding,
+                onGoLab = { navController.navigate(Destinations.Lab.route) },
+                onGoConnect = { navController.navigate(Destinations.Connect.route) },
+                onGoChat = { navController.navigate(Destinations.Chat.route) },
+                onGoDebug = { navController.navigate(Destinations.Debug.route) }
             )
         }
 
-        composable(Destinations.Lab) {
+        composable(Destinations.Lab.route) {
             LabRoute(
-                onBack = { navController.popBackStack() }
+                padding = padding
             )
         }
 
-        composable(Destinations.Connect) {
+        composable(Destinations.Connect.route) {
             ConnectRoute(
-                onBack = { navController.popBackStack() }
+                padding = padding
             )
         }
 
-        composable(Destinations.Chat) {
+        composable(Destinations.Chat.route) {
             ChatRoute(
-                onBack = { navController.popBackStack() }
+                padding = padding
             )
         }
 
-        composable(Destinations.Debug) {
+        composable(Destinations.Debug.route) {
             DebugRoute(
-                onBack = { navController.popBackStack() }
+                padding = padding
             )
         }
     }

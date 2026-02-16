@@ -1,24 +1,24 @@
 package com.msa.chatlab.core.storage.entity
 
-import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "outbox_items")
+enum class OutboxStatus {
+    PENDING,
+    FAILED
+}
+
+@Entity(tableName = "outbox")
 data class OutboxItemEntity(
-    @PrimaryKey @ColumnInfo(name = "id") val id: String,
-
-    // Envelope fields
-    @ColumnInfo(name = "message_id") val messageId: String,
-    @ColumnInfo(name = "created_at") val createdAt: Long,
-    @ColumnInfo(name = "content_type") val contentType: String,
-    @ColumnInfo(name = "headers_json") val headersJson: String,
-    @ColumnInfo(name = "body") val body: ByteArray,
-
-    // Destination
-    @ColumnInfo(name = "destination") val destination: String?,
-
-    // Retry info
-    @ColumnInfo(name = "attempt") val attempt: Int,
-    @ColumnInfo(name = "last_error") val lastError: String?
+    @PrimaryKey val id: String,
+    val messageId: String,
+    val destination: String,
+    val contentType: String,
+    val headersJson: String,
+    val body: ByteArray,
+    val createdAt: Long,
+    val attempt: Int = 0,
+    val lastAttemptAt: Long? = null,
+    val lastError: String? = null,
+    val status: OutboxStatus = OutboxStatus.PENDING
 )

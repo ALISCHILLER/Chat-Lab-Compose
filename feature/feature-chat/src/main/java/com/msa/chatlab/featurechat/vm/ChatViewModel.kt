@@ -2,11 +2,11 @@ package com.msa.chatlab.featurechat.vm
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.msa.chatlab.core.data.manager.MessageSender
-import com.msa.chatlab.core.data.outbox.OutboxQueue
-import com.msa.chatlab.core.data.settings.ActiveProfileStore
-import com.msa.chatlab.featurechat.state.ChatMessage
-import com.msa.chatlab.featurechat.state.ChatUiState
+import com.msa.chatlab.core.data.repository.ActiveProfileStore
+import com.msa.chatlab.core.data.repository.MessageSender
+import com.msa.chatlab.core.data.repository.RoomOutboxQueue
+import com.msa.chatlab.feature.chat.state.ChatMessage
+import com.msa.chatlab.feature.chat.state.ChatUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -17,7 +17,7 @@ import java.util.UUID
 
 class ChatViewModel(
     private val activeProfileStore: ActiveProfileStore, // فعلاً استفاده نمی‌کنیم تا observeActiveProfile خطا نده
-    private val outboxQueue: OutboxQueue,
+    private val outboxQueue: RoomOutboxQueue,
     private val messageSender: MessageSender
 ) : ViewModel() {
 

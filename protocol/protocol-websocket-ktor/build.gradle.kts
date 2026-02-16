@@ -1,14 +1,15 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.22"
 }
 
 android {
-    namespace = "com.msa.chatlab.protocol.websocket.ktor"
+    namespace = "com.msa.chatlab.protocol.ws.ktor"
     compileSdk = 34
 
     defaultConfig {
-        minSdk = 24
+        minSdk = 26
     }
 
     compileOptions {
@@ -25,10 +26,14 @@ dependencies {
     implementation(project(":core:core-protocol-api"))
     implementation(libs.kotlinx.coroutines.core)
 
-    // Ktor Client
-    implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.cio)
-    implementation(libs.ktor.client.websockets)
+    // Ktor - Direct Dependencies
+    val ktor_version = "2.3.9"
+    implementation("io.ktor:ktor-client-core:$ktor_version")
+    implementation("io.ktor:ktor-client-websockets:$ktor_version")
+    implementation("io.ktor:ktor-client-cio:$ktor_version")
+    implementation("io.ktor:ktor-client-logging:$ktor_version")
+    implementation("io.ktor:ktor-client-content-negotiation:$ktor_version")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor_version")
 
     // Koin for DI
     implementation(libs.koin.android)

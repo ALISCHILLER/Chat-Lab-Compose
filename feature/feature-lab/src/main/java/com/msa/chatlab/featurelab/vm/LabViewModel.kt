@@ -46,7 +46,7 @@ class LabViewModel(
     private fun startScenario(preset: Scenario.Preset) {
         if (_uiState.value.isRunning) return
 
-        val scenario = Scenario.defaultFor(preset)
+        val scenario = com.msa.chatlab.core.domain.model.lab.Scenario().defaultFor(preset)
         _uiState.update { it.copy(
             isRunning = true,
             activeScenario = scenario,

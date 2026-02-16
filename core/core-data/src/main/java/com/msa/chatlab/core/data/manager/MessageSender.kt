@@ -2,15 +2,19 @@ package com.msa.chatlab.core.data.manager
 
 import com.msa.chatlab.core.data.outbox.OutboxItem
 import com.msa.chatlab.core.data.outbox.OutboxQueue
+import com.msa.chatlab.core.protocol.api.contract.OutgoingPayload
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import java.util.UUID
 
 class MessageSender(
     private val connectionManager: ConnectionManager,
-    private val outboxQueue: OutboxQueue,
-    private val scope: CoroutineScope,
+    private val outboxQueue: OutboxQueue
 ) {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     fun sendText(text: String, destination: String) {
         scope.launch {
             val messageId = UUID.randomUUID().toString()
@@ -32,9 +36,8 @@ class MessageSender(
             }
 
             try {
-                // NOTE: The `destination` parameter is currently ignored as the updated
-                // ConnectionManager#send only accepts a ByteArray payload.
-                connectionManager.send(text.encodeToByteArray())
+                val payload = OutgoingPayload.Text(messageId, destination, text)
+                connectionManager.send(payload)
             } catch (t: Throwable) {
                 outboxQueue.enqueue(item.copy(lastError = t.message))
             }

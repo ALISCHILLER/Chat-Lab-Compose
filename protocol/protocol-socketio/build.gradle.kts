@@ -25,8 +25,8 @@ dependencies {
     implementation(project(":core:core-protocol-api"))
     implementation(libs.kotlinx.coroutines.core)
 
-    // Socket.IO Client
-    implementation(libs.socketio.client)
+    // Socket.IO
+    implementation("io.socket:socket.io-client:2.1.0")
 
     // Koin for DI
     implementation(libs.koin.android)

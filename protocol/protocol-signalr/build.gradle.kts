@@ -25,8 +25,9 @@ dependencies {
     implementation(project(":core:core-protocol-api"))
     implementation(libs.kotlinx.coroutines.core)
 
-    // SignalR Client
+    // SignalR
     implementation(libs.signalr)
+    implementation("org.slf4j:slf4j-android:1.7.36")
 
     // Koin for DI
     implementation(libs.koin.android)

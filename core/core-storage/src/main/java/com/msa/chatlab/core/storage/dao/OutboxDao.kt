@@ -5,23 +5,26 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.msa.chatlab.core.storage.entity.OutboxItemEntity
+import com.msa.chatlab.core.storage.entity.OutboxStatus
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface OutboxDao {
-
-    @Query("SELECT * FROM outbox_items ORDER BY created_at ASC")
-    fun observeAll(): Flow<List<OutboxItemEntity>>
-
-    @Query("SELECT * FROM outbox_items ORDER BY created_at ASC LIMIT 1")
-    suspend fun peekOldest(): OutboxItemEntity?
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsert(entity: OutboxItemEntity)
+    suspend fun insert(item: OutboxItemEntity)
 
-    @Query("DELETE FROM outbox_items WHERE id = :id")
+    @Query("SELECT * FROM outbox ORDER BY createdAt ASC LIMIT 1")
+    suspend fun getOldestPending(): OutboxItemEntity?
+
+    @Query("DELETE FROM outbox WHERE id = :id")
     suspend fun deleteById(id: String)
 
-    @Query("SELECT COUNT(*) FROM outbox_items")
-    suspend fun count(): Int
+    @Query("UPDATE outbox SET attempt = attempt + 1, lastAttemptAt = :timestamp, lastError = :error WHERE id = :id")
+    suspend fun incrementAttempt(id: String, timestamp: Long, error: String)
+
+    @Query("UPDATE outbox SET status = :status, lastError = :error WHERE id = :id")
+    suspend fun updateStatus(id: String, status: OutboxStatus, error: String)
+
+    @Query("SELECT * FROM outbox ORDER BY createdAt DESC")
+    fun observeAll(): Flow<List<OutboxItemEntity>>
 }

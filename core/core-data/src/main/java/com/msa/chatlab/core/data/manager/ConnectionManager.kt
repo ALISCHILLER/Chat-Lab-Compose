@@ -2,6 +2,7 @@ package com.msa.chatlab.core.data.manager
 
 import com.msa.chatlab.core.data.registry.ProtocolResolver
 import com.msa.chatlab.core.protocol.api.contract.ConnectionState
+import com.msa.chatlab.core.protocol.api.contract.OutgoingPayload
 import com.msa.chatlab.core.protocol.api.contract.TransportContract
 import com.msa.chatlab.core.protocol.api.error.TransportError
 import com.msa.chatlab.core.protocol.api.event.TransportEvent
@@ -34,11 +35,10 @@ class ConnectionManager(
 
     fun isConnectedNow(): Boolean = _connectionState.value is ConnectionState.Connected
 
-    suspend fun send(payload: ByteArray) {
+    suspend fun send(payload: OutgoingPayload) {
         if (!isConnectedNow()) throw IllegalStateException("Not connected")
         val t = _transport.value ?: throw IllegalStateException("Transport not available")
-        // TODO: This needs to be updated to construct an OutgoingPayload and call the transport's send method.
-        throw UnsupportedOperationException("TransportContract send() not wired yet")
+        t.send(payload)
     }
 
     /**
