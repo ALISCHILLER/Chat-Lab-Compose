@@ -1,10 +1,10 @@
 package com.msa.chatlab.core.storage.di
 
 import androidx.room.Room
-import com.msa.chatlab.core.storage.ChatLabDatabase
 import com.msa.chatlab.core.storage.dao.MessageDao
 import com.msa.chatlab.core.storage.dao.OutboxDao
 import com.msa.chatlab.core.storage.dao.ProfileDao
+import com.msa.chatlab.core.storage.db.ChatLabDatabase
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 

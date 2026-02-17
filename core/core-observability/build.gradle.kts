@@ -6,7 +6,7 @@ plugins {
 android {
     namespace = "com.msa.chatlab.core.observability"
     compileSdk = 34
-    defaultConfig { minSdk = 24 }
+    defaultConfig { minSdk = 26 }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
