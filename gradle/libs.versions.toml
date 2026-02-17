@@ -11,7 +11,7 @@ lifecycle = "2.8.0"
 material-icons-extended = "1.6.7"
 
 coroutines = "1.8.1"
-koin = "3.5.6"
+koin = "3.6.0-alpha01"
 room = "2.6.1"
 
 okhttp = "4.12.0"
@@ -67,5 +67,4 @@ androidx-test-espresso = { group = "androidx.test.espresso", name = "espresso-co
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

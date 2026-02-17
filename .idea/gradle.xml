@@ -15,7 +15,7 @@
             <option value="$PROJECT_DIR$/core/core-common" />
             <option value="$PROJECT_DIR$/core/core-data" />
             <option value="$PROJECT_DIR$/core/core-domain" />
-            <option value="$PROJECT_DIR$/core/core-native" />
+            <option value="$PROJECT_DIR$/core/core-nativebridge" />
             <option value="$PROJECT_DIR$/core/core-observability" />
             <option value="$PROJECT_DIR$/core/core-protocol-api" />
             <option value="$PROJECT_DIR$/core/core-storage" />

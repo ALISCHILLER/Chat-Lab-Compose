@@ -30,27 +30,22 @@ fun RootNavGraph(padding: PaddingValues) {
         }
 
         composable(Destinations.Lab.route) {
-            LabRoute(
-                padding = padding
-            )
+            LabRoute(padding = padding)
         }
 
         composable(Destinations.Connect.route) {
             ConnectRoute(
-                padding = padding
+                padding = padding,
+                onGoSettings = { navController.navigate(Destinations.Settings.route) }
             )
         }
 
         composable(Destinations.Chat.route) {
-            ChatRoute(
-                padding = padding
-            )
+            ChatRoute()
         }
 
         composable(Destinations.Debug.route) {
-            DebugRoute(
-                padding = padding
-            )
+            DebugRoute(onBack = { navController.popBackStack() })
         }
     }
 }

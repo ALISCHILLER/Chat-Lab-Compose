@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
 }
 
 android {
@@ -19,6 +18,10 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.14"
     }
 
     compileOptions {
@@ -52,6 +55,9 @@ dependencies {
     implementation(libs.koin.android)
     implementation(libs.koin.compose)
 
+    // Room (used by app DI module)
+    implementation(libs.room.runtime)
+
     // Feature modules
     implementation(project(":feature:feature-settings"))
     implementation(project(":feature:feature-lab"))
@@ -77,5 +83,4 @@ dependencies {
     // Test
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext)
-    androidTestImplementation(libs.androidx.test.espresso)
 }

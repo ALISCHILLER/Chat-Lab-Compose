@@ -17,7 +17,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             ChatLabTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    RootNavGraph(padding = innerPadding)
+                    RootNavGraph()
                 }
             }
         }

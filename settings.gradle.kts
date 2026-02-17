@@ -12,6 +12,7 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven { setUrl("https://jitpack.io") }
+        maven { setUrl("https://maven.koin-projects.io/public") }
     }
 }
 
@@ -27,7 +28,7 @@ include(
     ":core:core-data",
     ":core:core-storage",
     ":core:core-observability",
-    ":core:core-native", // فعلاً placeholder، هفته ۹ فعال میشه
+    ":core:core-nativebridge",
 
     // Feature
     ":feature:feature-settings",

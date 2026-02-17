@@ -1,11 +1,10 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
 }
 
 android {
-    namespace = "com.msa.chatlab.featuredebug"
+    namespace = "com.msa.chatlab.feature.debug"
     compileSdk = 34
 
     defaultConfig {
@@ -14,6 +13,10 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.14"
     }
 
     compileOptions {
@@ -31,9 +34,4 @@ dependencies {
     implementation(libs.androidx.compose.material3)
 
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.lifecycle.runtime.compose)
-
-    implementation(project(":core:core-domain"))
-    implementation(project(":core:core-data"))
-    implementation(project(":core:core-observability"))
 }
