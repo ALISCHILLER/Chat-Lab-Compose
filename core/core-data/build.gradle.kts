@@ -18,7 +18,7 @@ android {
 dependencies {
     api(project(":core:core-domain"))
     api(project(":core:core-protocol-api"))
-    implementation(project(":core:core-storage"))
+    api(project(":core:core-storage"))
 
     implementation(libs.kotlinx.coroutines.core)
 }

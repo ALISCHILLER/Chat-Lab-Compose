@@ -8,7 +8,7 @@ import com.msa.chatlab.core.storage.dao.ProfileDao
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
-val storageModule = module {
+val StorageModule = module {
     single<ChatLabDatabase> {
         Room.databaseBuilder(
             androidContext(),

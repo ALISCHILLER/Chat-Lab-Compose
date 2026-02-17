@@ -59,6 +59,21 @@ dependencies {
     implementation(project(":feature:feature-chat"))
     implementation(project(":feature:feature-debug"))
 
+    // Protocol modules
+    implementation(project(":protocol:protocol-websocket-okhttp"))
+    implementation(project(":protocol:protocol-websocket-ktor"))
+    implementation(project(":protocol:protocol-socketio"))
+    implementation(project(":protocol:protocol-signalr"))
+    implementation(project(":protocol:protocol-mqtt"))
+
+    // Core modules
+    implementation(project(":core:core-data"))
+    implementation(project(":core:core-domain"))
+    implementation(project(":core:core-common"))
+    implementation(project(":core:core-protocol-api"))
+    implementation(project(":core:core-storage"))
+    implementation(project(":core:core-observability"))
+
     // Test
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext)
