@@ -1,5 +1,7 @@
 package com.msa.chatlab.di
 
+import com.msa.chatlab.feature.chat.vm.ChatListViewModel
+import com.msa.chatlab.feature.chat.vm.ChatThreadViewModel
 import com.msa.chatlab.feature.chat.vm.ChatViewModel
 import com.msa.chatlab.feature.chat.vm.OutboxViewModel
 import com.msa.chatlab.feature.connect.vm.ConnectViewModel
@@ -14,4 +16,6 @@ val FeatureModule = module {
     viewModel { ChatViewModel(get(), get(), get()) }
     viewModel { OutboxViewModel(get()) }
     viewModel { LabViewModel(get(), get()) }
+    viewModel { ChatListViewModel(get(), get()) }
+    viewModel { ChatThreadViewModel(get(), get(), get()) }
 }

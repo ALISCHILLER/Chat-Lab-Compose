@@ -1,8 +1,19 @@
 package com.msa.chatlab.core.storage.dao
 
-import androidx.room.*
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
 import com.msa.chatlab.core.storage.entity.MessageEntity
 import kotlinx.coroutines.flow.Flow
+
+data class ConversationRow(
+    val destination: String,
+    val lastAt: Long,
+    val lastText: String?,
+    val lastStatus: String?,
+    val total: Int
+)
 
 @Dao
 interface MessageDao {
@@ -12,6 +23,9 @@ interface MessageDao {
 
     @Query("SELECT * FROM messages WHERE profile_id = :profileId ORDER BY created_at ASC")
     fun observeByProfile(profileId: String): Flow<List<MessageEntity>>
+
+    @Query("SELECT * FROM messages WHERE profile_id = :profileId AND destination = :destination ORDER BY created_at ASC")
+    fun observeConversation(profileId: String, destination: String): Flow<List<MessageEntity>>
 
     /*
     @Query(
@@ -47,6 +61,29 @@ interface MessageDao {
     @Query("DELETE FROM messages WHERE profile_id = :profileId AND message_id = :messageId")
     suspend fun delete(profileId: String, messageId: String)
 
+    @Query("DELETE FROM messages WHERE profile_id = :profileId")
+    suspend fun deleteByProfile(profileId: String)
+
     @Query("SELECT COUNT(*) FROM messages")
     suspend fun countAll(): Long
+
+    @Query(
+        """
+    SELECT 
+      m.destination AS destination,
+      MAX(m.created_at) AS lastAt,
+      (SELECT text FROM messages m2 
+         WHERE m2.profile_id = m.profile_id AND m2.destination = m.destination
+         ORDER BY m2.created_at DESC LIMIT 1) AS lastText,
+      (SELECT status FROM messages m2 
+         WHERE m2.profile_id = m.profile_id AND m2.destination = m.destination
+         ORDER BY m2.created_at DESC LIMIT 1) AS lastStatus,
+      COUNT(*) AS total
+    FROM messages m
+    WHERE m.profile_id = :profileId
+    GROUP BY m.destination
+    ORDER BY lastAt DESC
+    """
+    )
+    fun observeConversations(profileId: String): Flow<List<ConversationRow>>
 }

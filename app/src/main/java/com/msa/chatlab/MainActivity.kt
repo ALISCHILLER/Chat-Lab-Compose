@@ -12,7 +12,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // ✅ For real edge-to-edge
+        // ✅ مهم: برای edge-to-edge واقعی
         WindowCompat.setDecorFitsSystemWindows(window, false)
         enableEdgeToEdge()
 

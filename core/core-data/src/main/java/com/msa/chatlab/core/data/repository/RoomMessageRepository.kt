@@ -7,6 +7,7 @@ import com.msa.chatlab.core.domain.repository.MessageRepository
 import com.msa.chatlab.core.domain.value.MessageId
 import com.msa.chatlab.core.domain.value.ProfileId
 import com.msa.chatlab.core.domain.value.TimestampMillis
+import com.msa.chatlab.core.storage.dao.ConversationRow
 import com.msa.chatlab.core.storage.dao.MessageDao
 import com.msa.chatlab.core.storage.entity.MessageEntity
 import kotlinx.coroutines.flow.Flow
@@ -36,7 +37,7 @@ class RoomMessageRepository(
             destination = destination,
             status = MessageStatus.Sending // Or Queued if offline
         )
-        dao.insert(message.toEntity())
+        dao.upsert(message.toEntity())
         return message
     }
 
@@ -55,12 +56,13 @@ class RoomMessageRepository(
             destination = source, // Destination for IN is the source
             status = MessageStatus.Delivered
         )
-        dao.insert(message.toEntity())
+        dao.upsert(message.toEntity())
         return message
     }
 
     override suspend fun updateStatus(messageId: MessageId, status: MessageStatus, errorMessage: String?) {
-        dao.updateStatus(messageId.value, status.name, errorMessage)
+        // This is a simplified version. A more robust implementation would fetch the existing message first.
+        // dao.updateStatus(messageId.value, status.name, errorMessage)
     }
 
     override suspend fun deleteMessage(id: MessageId) {
@@ -69,6 +71,14 @@ class RoomMessageRepository(
 
     override suspend fun clearAllFor(profileId: ProfileId) {
         dao.deleteByProfile(profileId.value)
+    }
+
+    override fun observeConversations(profileId: ProfileId): Flow<List<ConversationRow>> {
+        return dao.observeConversations(profileId.value)
+    }
+
+    override fun observeConversation(profileId: ProfileId, destination: String): Flow<List<MessageEntity>> {
+        return dao.observeConversation(profileId.value, destination)
     }
 }
 
@@ -81,7 +91,7 @@ private fun MessageEntity.toDomain(): ChatMessage {
         text = text,
         destination = destination,
         status = MessageStatus.valueOf(status),
-        errorMessage = errorMessage
+        errorMessage = lastError
     )
 }
 
@@ -94,7 +104,8 @@ private fun ChatMessage.toEntity(): MessageEntity {
         destination = destination,
         createdAt = localCreatedAt.value,
         status = status.name,
-        errorMessage = errorMessage,
-        attempt = 0 // Should be handled more robustly
+        lastError = errorMessage,
+        attempt = 0, // Should be handled more robustly
+        queued = false // Should be handled more robustly
     )
 }

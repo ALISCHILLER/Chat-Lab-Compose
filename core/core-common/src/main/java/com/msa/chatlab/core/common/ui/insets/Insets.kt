@@ -4,14 +4,11 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.union
-import androidx.compose.runtime.Composable
 
-// For Scaffold content
+// برای Scaffold محتوا
 val AppContentInsets: WindowInsets
-    @Composable
     get() = WindowInsets.safeDrawing
 
-// For composer at the bottom of the screen that moves with the keyboard
+// برای composer پایین صفحه که با کیبورد بالا بیاد
 val AppImeInsets: WindowInsets
-    @Composable
     get() = WindowInsets.safeDrawing.union(WindowInsets.ime)

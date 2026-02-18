@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
 
 sealed interface UiEffect {
-    data class Snackbar(val message: String, val actionLabel: String? = null) : UiEffect
+    data class Snackbar(val message: String) : UiEffect
 }
 
 interface UiMessenger {

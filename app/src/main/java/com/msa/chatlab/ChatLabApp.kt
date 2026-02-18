@@ -1,6 +1,7 @@
 package com.msa.chatlab
 
 import android.app.Application
+import android.os.StrictMode
 import com.msa.chatlab.core.data.outbox.OutboxProcessor
 import com.msa.chatlab.di.AppModule
 import com.msa.chatlab.di.CoreModule
@@ -12,6 +13,15 @@ import org.koin.core.context.startKoin
 class ChatLabApp : Application(), KoinComponent {
     override fun onCreate() {
         super.onCreate()
+
+        if (BuildConfig.DEBUG) {
+            StrictMode.setThreadPolicy(
+                StrictMode.ThreadPolicy.Builder()
+                    .detectAll()
+                    .penaltyLog()
+                    .build()
+            )
+        }
 
         startKoin {
             androidContext(this@ChatLabApp)
