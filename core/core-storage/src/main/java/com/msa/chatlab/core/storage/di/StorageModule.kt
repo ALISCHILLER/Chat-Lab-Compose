@@ -1,31 +1,27 @@
 package com.msa.chatlab.core.storage.di
 
 import androidx.room.Room
-import com.msa.chatlab.core.storage.dao.MessageDao
-import com.msa.chatlab.core.storage.dao.OutboxDao
-import com.msa.chatlab.core.storage.dao.ProfileDao
+import com.msa.chatlab.core.storage.dao.*
 import com.msa.chatlab.core.storage.db.ChatLabDatabase
+import com.msa.chatlab.core.storage.db.Migrations
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
 val StorageModule = module {
-    single<ChatLabDatabase> {
+    single {
         Room.databaseBuilder(
             androidContext(),
             ChatLabDatabase::class.java,
-            "chatlab-db"
-        ).build()
+            ChatLabDatabase.DATABASE_NAME
+        )
+            .addMigrations(Migrations.MIGRATION_1_2)
+            .build()
     }
 
-    single<MessageDao> {
-        get<ChatLabDatabase>().messageDao()
-    }
-
-    single<OutboxDao> {
-        get<ChatLabDatabase>().outboxDao()
-    }
-
-    single<ProfileDao> {
-        get<ChatLabDatabase>().profileDao()
-    }
+    single { get<ChatLabDatabase>().messageDao() }
+    single { get<ChatLabDatabase>().outboxDao() }
+    single { get<ChatLabDatabase>().profileDao() }
+    single { get<ChatLabDatabase>().runDao() }
+    single { get<ChatLabDatabase>().eventDao() }
+    single { get<ChatLabDatabase>().presetDao() }
 }

@@ -15,7 +15,7 @@ class SessionExporter(
         runResult: RunResult,
         events: List<RunEvent>
     ): Map<String, String> {
-        val profileJson = runBlocking { profileManager.getProfile(runSession.runId.let { com.msa.chatlab.core.domain.value.ProfileId(it.value) })?.let { codec.encode(it) } ?: "{}" }
+        val profileJson = runBlocking { profileManager.getProfile(runSession.profileId)?.let { codec.encode(it) } ?: "{}" }
 
         val csv = buildString {
             appendLine("timestamp,event_type,message_id,reason")

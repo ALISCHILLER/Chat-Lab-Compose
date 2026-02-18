@@ -28,6 +28,9 @@ class SettingsViewModel(
     private val activeFlow = activeStore.activeProfile
 
     init {
+        // Set supported protocols
+        _state.value = _state.value.copy(supportedProtocols = listOf(ProtocolType.WS_OKHTTP))
+
         viewModelScope.launch {
             combine(
                 profilesFlow,

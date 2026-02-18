@@ -3,14 +3,12 @@ package com.msa.chatlab.core.storage.entity
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-enum class OutboxStatus {
-    PENDING,
-    FAILED
-}
+enum class OutboxStatus { PENDING, FAILED }
 
 @Entity(tableName = "outbox")
 data class OutboxItemEntity(
     @PrimaryKey val id: String,
+    val profileId: String,
     val messageId: String,
     val destination: String,
     val contentType: String,

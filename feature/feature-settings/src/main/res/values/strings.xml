@@ -1,0 +1,21 @@
+<resources>
+    <!-- Settings Screen -->
+    <string name="settings_profiles_title">Profiles</string>
+    <string name="settings_import_action">Import</string>
+    <string name="settings_export_all_action">Export All</string>
+    <string name="settings_new_profile_action">New Profile</string>
+
+    <!-- Profile Editor -->
+    <string name="editor_new_profile_title">New Profile</string>
+    <string name="editor_edit_profile_title">Edit: %1$s</string>
+    <string name="editor_back_action">Back</string>
+    <string name="editor_save_action">Save Profile</string>
+    <string name="editor_cancel_action">Cancel</string>
+    <string name="editor_name_label">Profile name *</string>
+    <string name="editor_protocol_label">Protocol</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_import_title">Import Profile</string>
+    <string name="dialog_export_title">Export Profile</string>
+    <string name="dialog_close_action">Close</string>
+</resources>

@@ -28,6 +28,7 @@ include(
     ":core:core-storage",
     ":core:core-observability",
     ":core:core-nativebridge",
+    ":core:core-designsystem",
 
     // Feature
     ":feature:feature-settings",

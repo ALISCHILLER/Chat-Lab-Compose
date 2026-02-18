@@ -1,15 +1,10 @@
 package com.msa.chatlab.feature.chat.state
 
-data class ChatMessage(
-    val id: String,
-    val from: String,
-    val text: String,
-    val ts: Long
-)
+import com.msa.chatlab.feature.chat.model.ChatMessageUi
 
 data class ChatUiState(
-    val profileName: String = "No profile",
-    val messages: List<ChatMessage> = emptyList(),
+    val profileName: String = "",
+    val messages: List<ChatMessageUi> = emptyList(),
     val outboxCount: Int = 0,
     val error: String? = null
 )

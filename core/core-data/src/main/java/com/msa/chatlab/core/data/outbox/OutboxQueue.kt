@@ -1,5 +1,6 @@
 package com.msa.chatlab.core.data.outbox
 
+import com.msa.chatlab.core.storage.entity.OutboxStatus
 import kotlinx.coroutines.flow.Flow
 
 interface OutboxQueue {
@@ -9,4 +10,7 @@ interface OutboxQueue {
     suspend fun incrementAttempt(id: String, error: String)
     suspend fun markAsFailed(id: String, error: String)
     fun observe(): Flow<List<OutboxItem>>
+    fun observeByStatus(status: OutboxStatus): Flow<List<OutboxItem>>
+    suspend fun retryAllFailed()
+    suspend fun clearFailed()
 }

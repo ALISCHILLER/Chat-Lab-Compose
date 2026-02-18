@@ -1,13 +1,17 @@
 package com.msa.chatlab.di
 
 import com.msa.chatlab.feature.chat.vm.ChatViewModel
+import com.msa.chatlab.feature.chat.vm.OutboxViewModel
 import com.msa.chatlab.feature.connect.vm.ConnectViewModel
+import com.msa.chatlab.feature.lab.vm.LabViewModel
 import com.msa.chatlab.feature.settings.vm.SettingsViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
 val FeatureModule = module {
-    viewModel { ConnectViewModel(get(), get()) }
+    viewModel { ConnectViewModel(get(), get(), get()) }
     viewModel { SettingsViewModel(get(), get(), get()) }
     viewModel { ChatViewModel(get(), get(), get()) }
+    viewModel { OutboxViewModel(get()) }
+    viewModel { LabViewModel(get(), get()) }
 }

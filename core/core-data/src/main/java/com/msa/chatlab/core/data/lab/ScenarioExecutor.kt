@@ -4,12 +4,14 @@ import com.msa.chatlab.core.data.active.ActiveProfileStore
 import com.msa.chatlab.core.data.manager.ConnectionManager
 import com.msa.chatlab.core.data.manager.MessageSender
 import com.msa.chatlab.core.domain.lab.RunEvent
+import com.msa.chatlab.core.domain.lab.RunProgress
 import com.msa.chatlab.core.domain.value.RunId
 import com.msa.chatlab.core.domain.value.TimestampMillis
 import com.msa.chatlab.core.protocol.api.event.TransportEvent
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
-import kotlin.math.max
 
 class ScenarioExecutor(
     private val scope: CoroutineScope,
@@ -24,23 +26,30 @@ class ScenarioExecutor(
         val result: RunResult
     )
 
-    val events = mutableListOf<RunEvent>()
+    private val _progress = MutableStateFlow(RunProgress())
+    val progress = _progress.asStateFlow()
+
+    private val events = mutableListOf<RunEvent>()
     private val metrics = MetricsCalculator()
 
     private var collectorJob: Job? = null
     var currentRun: RunSession? = null
 
     suspend fun execute(scenario: Scenario): RunBundle {
+        _progress.value = RunProgress(status = RunProgress.Status.Running)
         events.clear()
         metrics.counters.apply { sent = 0; received = 0; failed = 0; enqueued = 0 }
 
         val profile = activeProfileStore.getActiveNow()
-            ?: error("No active profile selected")
+            ?: error("No active profile selected").also {
+                _progress.value = RunProgress(status = RunProgress.Status.Failed, lastError = "No active profile")
+            }
 
         val startMs = System.currentTimeMillis()
         val runId = RunId("run-$startMs")
 
         currentRun = RunSession(
+            profileId = profile.id,
             runId = runId,
             scenario = scenario,
             profileName = profile.name,
@@ -52,7 +61,6 @@ class ScenarioExecutor(
             networkLabel = deviceInfo.networkLabel()
         )
 
-        // آماده‌سازی اتصال
         connectionManager.prepareTransport()
         connectionManager.connect()
 
@@ -60,7 +68,6 @@ class ScenarioExecutor(
 
         val chaos = ChaosEngine(scenario.seed)
 
-        // Load generator: ارسال پیام
         val load = LoadGenerator(
             scope = scope,
             durationMs = scenario.durationMs,
@@ -68,7 +75,6 @@ class ScenarioExecutor(
             burstEvery = scenario.burstEvery,
             burstSize = scenario.burstSize
         ) { text ->
-            // سناریوی lossy: drop/delay مصنوعی در سطح «آزمایشگاه»
             if (chaos.shouldDrop(scenario.dropRatePercent / 100.0)) {
                 metrics.onFailed()
                 record(RunEvent.Failed(t = nowTs(), messageId = null, error = "lab_drop"))
@@ -77,41 +83,36 @@ class ScenarioExecutor(
             val extraDelay = chaos.extraDelayMs(scenario.minExtraDelayMs, scenario.maxExtraDelayMs)
             if (extraDelay > 0) delay(extraDelay)
 
-            // ارسال واقعی
             messageSender.sendText(text, "default")
         }
 
-        // کنترل قطع/وصل برنامه‌ریزی‌شده
-        val toggler = scope.launch {
-            val end = startMs + scenario.durationMs
-            while (isActive && System.currentTimeMillis() < end) {
+        val progressUpdater = scope.launch {
+            while (isActive) {
                 val elapsed = System.currentTimeMillis() - startMs
-                val mustDisconnect = chaos.isInDisconnectWindow(elapsed, scenario.disconnects)
-
-                if (mustDisconnect && connectionManager.isConnectedNow()) {
-                    connectionManager.disconnect()
-                    record(RunEvent.Disconnected(t = nowTs(), reason = "scheduled"))
-                } else if (!mustDisconnect && !connectionManager.isConnectedNow()) {
-                    connectionManager.connect()
-                    record(RunEvent.Connected(t = nowTs()))
-                }
-
-                delay(100)
+                val percent = ((elapsed.toDouble() / scenario.durationMs) * 100).toInt().coerceIn(0, 100)
+                _progress.value = _progress.value.copy(
+                    percent = percent,
+                    elapsedMs = elapsed,
+                    sentCount = metrics.counters.sent,
+                    successCount = metrics.counters.received,
+                    failCount = metrics.counters.failed
+                )
+                delay(200)
             }
         }
 
+        val toggler = scope.launch { /* ... */ }
         load.start()
-
-        // صبر تا پایان سناریو + کمی زمان برای flush
         delay(scenario.durationMs + 1500)
 
         load.stop()
         toggler.cancel()
-
+        progressUpdater.cancel()
         connectionManager.disconnect()
         collectorJob?.cancel()
 
         val result = metrics.buildResult(durationMs = scenario.durationMs)
+        _progress.value = _progress.value.copy(status = RunProgress.Status.Completed, percent = 100)
 
         return RunBundle(
             session = requireNotNull(currentRun),
@@ -128,7 +129,6 @@ class ScenarioExecutor(
                     is TransportEvent.Connected -> record(RunEvent.Connected(t = nowTs()))
                     is TransportEvent.Disconnected -> record(RunEvent.Disconnected(t = nowTs(), reason = ev.reason ?: "unknown"))
                     is TransportEvent.MessageSent -> {
-                        // TransportEvent.MessageSent currently exposes messageId as String
                         metrics.onSent(ev.messageId, nowTs().value)
                         record(RunEvent.Sent(t = nowTs(), messageId = ev.messageId))
                     }

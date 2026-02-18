@@ -1,0 +1,11 @@
+<resources>
+    <string name="connect_no_active_profile">No active profile.</string>
+    <string name="connect_go_to_settings">Go to Settings to activate one</string>
+    <string name="connect_prepare">Prepare</string>
+    <string name="connect_disconnect">Disconnect</string>
+    <string name="connect_status">Status</string>
+    <string name="connect_sent">Sent</string>
+    <string name="connect_received">Received</string>
+    <string name="connect_event_log">Event Log</string>
+    <string name="connect">Connect</string>
+</resources>

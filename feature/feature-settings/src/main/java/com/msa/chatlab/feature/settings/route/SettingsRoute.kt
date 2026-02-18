@@ -1,6 +1,5 @@
 package com.msa.chatlab.feature.settings.route
 
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -10,7 +9,6 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun SettingsRoute(
-    padding: PaddingValues,
     onGoLab: () -> Unit,
     onGoConnect: () -> Unit,
     onGoChat: () -> Unit,
@@ -21,11 +19,6 @@ fun SettingsRoute(
 
     SettingsScreen(
         state = state,
-        padding = padding,
-        onEvent = vm::onEvent,
-        onGoLab = onGoLab,
-        onGoConnect = onGoConnect,
-        onGoChat = onGoChat,
-        onGoDebug = onGoDebug
+        onEvent = vm::onEvent
     )
 }

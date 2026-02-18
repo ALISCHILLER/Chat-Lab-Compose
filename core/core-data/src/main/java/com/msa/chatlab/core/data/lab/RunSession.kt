@@ -1,9 +1,11 @@
 package com.msa.chatlab.core.data.lab
 
+import com.msa.chatlab.core.domain.value.ProfileId
 import com.msa.chatlab.core.domain.value.RunId
 import com.msa.chatlab.core.domain.value.TimestampMillis
 
 data class RunSession(
+    val profileId: ProfileId,
     val runId: RunId,
     val scenario: Scenario,
     val profileName: String,

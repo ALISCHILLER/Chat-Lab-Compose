@@ -1,30 +1,38 @@
 package com.msa.chatlab.feature.chat.route
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.msa.chatlab.feature.chat.screen.ChatScreen
 import com.msa.chatlab.feature.chat.vm.ChatViewModel
+import com.msa.chatlab.feature.chat.vm.OutboxViewModel
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun ChatRoute() {
-    val vm: ChatViewModel = viewModel()
-    val state by vm.uiState.collectAsStateWithLifecycle()
+fun ChatRoute(padding: PaddingValues) {
+    val chatVm: ChatViewModel = koinViewModel()
+    val outboxVm: OutboxViewModel = koinViewModel()
+    val chatState by chatVm.uiState.collectAsStateWithLifecycle()
+    val outboxState by outboxVm.uiState.collectAsStateWithLifecycle()
 
     var input by rememberSaveable { mutableStateOf("") }
     var destination by rememberSaveable { mutableStateOf("default") }
 
     ChatScreen(
-        state = state,
+        chatState = chatState,
+        outboxState = outboxState,
         input = input,
         destination = destination,
+        padding = padding,
         onInputChange = { input = it },
         onDestinationChange = { destination = it },
         onSend = {
-            vm.send(input, destination)
+            chatVm.send(input, destination)
             input = ""
         },
-        onClearError = vm::clearError
+        onClearError = chatVm::clearError,
+        onRetryOutbox = outboxVm::onRetryAll,
+        onClearOutbox = outboxVm::onClearAll
     )
 }

@@ -6,7 +6,10 @@ plugins {
 android {
     namespace = "com.msa.chatlab.core.common"
     compileSdk = 34
-    defaultConfig { minSdk = 24 }
+    defaultConfig { minSdk = 26 }
+
+    buildFeatures { compose = true }
+    composeOptions { kotlinCompilerExtensionVersion = "1.5.14" }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -16,5 +19,11 @@ android {
 }
 
 dependencies {
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
+
     implementation(libs.kotlinx.coroutines.core)
 }

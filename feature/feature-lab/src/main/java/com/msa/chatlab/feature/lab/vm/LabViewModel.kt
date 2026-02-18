@@ -1,13 +1,11 @@
 package com.msa.chatlab.feature.lab.vm
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.msa.chatlab.core.data.lab.Scenario
 import com.msa.chatlab.core.data.lab.ScenarioExecutor
 import com.msa.chatlab.core.data.lab.SessionExporter
 import com.msa.chatlab.core.data.lab.defaultFor
-import com.msa.chatlab.core.data.manager.ProfileManager
 import com.msa.chatlab.core.domain.model.ScenarioPreset
 import com.msa.chatlab.feature.lab.mapper.toDataPreset
 import com.msa.chatlab.feature.lab.state.LabUiEffect
@@ -18,14 +16,13 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class LabViewModel(
-    private val profileManager: ProfileManager,
     private val scenarioExecutor: ScenarioExecutor,
     private val sessionExporter: SessionExporter,
-    private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LabUiState())
@@ -35,6 +32,15 @@ class LabViewModel(
     val uiEffect = _uiEffect.asSharedFlow()
 
     private var executionJob: Job? = null
+
+    init {
+        // Observe progress from the executor
+        viewModelScope.launch {
+            scenarioExecutor.progress.collectLatest {
+                _uiState.update { state -> state.copy(progress = it) }
+            }
+        }
+    }
 
     fun onEvent(event: LabUiEvent) {
         when (event) {
@@ -49,31 +55,17 @@ class LabViewModel(
     }
 
     private fun startScenario(preset: ScenarioPreset) {
-        if (_uiState.value.isRunning) return
+        if (_uiState.value.progress.status == com.msa.chatlab.core.domain.lab.RunProgress.Status.Running) return
 
         val scenario = Scenario().defaultFor(preset.toDataPreset())
-        _uiState.update { it.copy(
-            isRunning = true,
-            activeScenario = scenario,
-            runResult = null,
-            progressPercent = 0,
-            errorMessage = null
-        ) }
+        _uiState.update { it.copy(activeScenario = scenario, runResult = null, errorMessage = null) }
 
         executionJob = viewModelScope.launch {
             try {
-                // اجرای سناریو
                 val runBundle = scenarioExecutor.execute(scenario)
 
-                // به‌روزرسانی نتایج
-                _uiState.update { it.copy(
-                    isRunning = false,
-                    runResult = runBundle.result,
-                    progressPercent = 100,
-                    pastResults = it.pastResults + runBundle.result
-                ) }
+                _uiState.update { it.copy(runResult = runBundle.result, pastResults = it.pastResults + runBundle.result) }
 
-                // صدور خروجی
                 val files = sessionExporter.exportRun(
                     runSession = runBundle.session,
                     runResult = runBundle.result,
@@ -83,10 +75,7 @@ class LabViewModel(
                 _uiEffect.tryEmit(LabUiEffect.ShowExportDialog(files))
                 _uiEffect.tryEmit(LabUiEffect.ShowSnackbar("Scenario completed successfully"))
             } catch (e: Exception) {
-                _uiState.update { it.copy(
-                    isRunning = false,
-                    errorMessage = e.message ?: "Execution failed"
-                ) }
+                _uiState.update { it.copy(errorMessage = e.message ?: "Execution failed") }
                 _uiEffect.tryEmit(LabUiEffect.ShowSnackbar("Error: ${e.message}"))
             }
         }
@@ -94,6 +83,5 @@ class LabViewModel(
 
     private fun stopExecution() {
         executionJob?.cancel()
-        _uiState.update { it.copy(isRunning = false) }
     }
 }

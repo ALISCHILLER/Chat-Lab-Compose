@@ -3,73 +3,86 @@ package com.msa.chatlab.feature.chat.vm
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.msa.chatlab.core.data.active.ActiveProfileStore
-import com.msa.chatlab.core.data.manager.MessageSender
-import com.msa.chatlab.core.data.outbox.RoomOutboxQueue
-import com.msa.chatlab.feature.chat.state.ChatMessage
+import com.msa.chatlab.core.data.outbox.OutboxQueue
+import com.msa.chatlab.core.domain.model.MessageDirection
+import com.msa.chatlab.core.domain.repository.MessageRepository
+import com.msa.chatlab.core.domain.value.MessageId
+import com.msa.chatlab.feature.chat.model.ChatMessageUi
 import com.msa.chatlab.feature.chat.state.ChatUiState
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.UUID
 
 class ChatViewModel(
-    private val activeProfileStore: ActiveProfileStore, // فعلاً استفاده نمی‌کنیم تا observeActiveProfile خطا نده
-    private val outboxQueue: RoomOutboxQueue,
-    private val messageSender: MessageSender
+    private val activeProfileStore: ActiveProfileStore,
+    private val messageRepository: MessageRepository,
+    private val outboxQueue: OutboxQueue
 ) : ViewModel() {
 
-    private val messagesFlow = MutableStateFlow<List<ChatMessage>>(emptyList())
     private val errorFlow = MutableStateFlow<String?>(null)
 
-    val uiState: StateFlow<ChatUiState> =
-        combine(
-            messagesFlow,
-            errorFlow,
-            outboxQueue.observe()
-        ) { msgs, err, outbox ->
-            ChatUiState(
-                profileName = "Active",   // بعداً می‌تونی به activeProfileStore وصلش کنی
-                messages = msgs,
-                outboxCount = outbox.size,
-                error = err
-            )
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ChatUiState())
-
-    fun onInputChange(newValue: String) {
-        // قبلاً تو Route صدا زده می‌شده؛ الان ورودی رو تو UI نگه می‌داریم → no-op
-    }
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val uiState: StateFlow<ChatUiState> = activeProfileStore.activeProfile
+        .filterNotNull()
+        .flatMapLatest { activeProfile ->
+            combine(
+                messageRepository.observeMessages(activeProfile.id),
+                outboxQueue.observe(),
+                errorFlow
+            ) { messages, outbox, error ->
+                ChatUiState(
+                    profileName = activeProfile.name,
+                    messages = messages.map { it.toUiModel() },
+                    outboxCount = outbox.size,
+                    error = error
+                )
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ChatUiState())
 
     fun clearError() {
         errorFlow.value = null
-    }
-
-    fun toggleSimulateOffline() {
-        // قابلیت قدیمی بوده → فعلاً no-op تا کامپایل بشه
     }
 
     fun send(text: String, destination: String) {
         val trimmed = text.trim()
         if (trimmed.isEmpty()) return
 
-        val localMsg = ChatMessage(
-            id = UUID.randomUUID().toString(),
-            from = "me",
-            text = trimmed,
-            ts = System.currentTimeMillis()
-        )
-
         viewModelScope.launch {
-            messagesFlow.value = messagesFlow.value + localMsg
-            errorFlow.value = null
-
-            runCatching {
-                messageSender.sendText(trimmed, destination)
-            }.onFailure {
-                errorFlow.value = it.message ?: "Send failed"
+            val activeProfile = activeProfileStore.getActiveNow() ?: run {
+                errorFlow.value = "No active profile"
+                return@launch
             }
+
+            val messageId = MessageId(UUID.randomUUID().toString())
+            messageRepository.insertOutgoing(
+                profileId = activeProfile.id,
+                messageId = messageId,
+                text = trimmed,
+                destination = destination
+            )
+
+            outboxQueue.enqueue(
+                com.msa.chatlab.core.data.outbox.OutboxItem(
+                    id = UUID.randomUUID().toString(),
+                    messageId = messageId.value,
+                    destination = destination,
+                    contentType = "text/plain",
+                    headersJson = "{}",
+                    body = trimmed.toByteArray(),
+                    createdAt = System.currentTimeMillis()
+                )
+            )
         }
     }
+}
+
+private fun com.msa.chatlab.core.domain.model.ChatMessage.toUiModel(): ChatMessageUi {
+    return ChatMessageUi(
+        id = this.id.value,
+        direction = if (this.direction == MessageDirection.IN) ChatMessageUi.Direction.IN else ChatMessageUi.Direction.OUT,
+        text = this.text,
+        timeMs = this.localCreatedAt.value
+    )
 }

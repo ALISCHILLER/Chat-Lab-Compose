@@ -12,7 +12,7 @@ class RoomOutboxQueue(private val dao: OutboxDao) : OutboxQueue {
     }
 
     override suspend fun peekOldest(): OutboxItem? {
-        return dao.getOldestPending()?.toDomain()
+        return dao.getOldestByStatus()?.toDomain()
     }
 
     override suspend fun remove(id: String) {
@@ -29,5 +29,17 @@ class RoomOutboxQueue(private val dao: OutboxDao) : OutboxQueue {
 
     override fun observe(): Flow<List<OutboxItem>> {
         return dao.observeAll().map { list -> list.map { it.toDomain() } }
+    }
+
+    override fun observeByStatus(status: OutboxStatus): Flow<List<OutboxItem>> {
+        return dao.observeByStatus(status).map { list -> list.map { it.toDomain() } }
+    }
+
+    override suspend fun retryAllFailed() {
+        dao.updateStatusForAll(OutboxStatus.FAILED, OutboxStatus.PENDING)
+    }
+
+    override suspend fun clearFailed() {
+        dao.deleteByStatus(OutboxStatus.FAILED)
     }
 }

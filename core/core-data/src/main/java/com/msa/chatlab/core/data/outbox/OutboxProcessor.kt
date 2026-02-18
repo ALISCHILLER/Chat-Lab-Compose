@@ -35,24 +35,32 @@ class OutboxProcessor(
     }
 
     private suspend fun flush() {
-        while (true) {
+        while (connectionManager.isConnectedNow()) {
             val item = outboxQueue.peekOldest() ?: break
+
             val profile = activeProfileStore.activeProfile.first()
             val retryPolicy = profile?.retryPolicy ?: RetryPolicy()
 
-            try {
-                if (item.attempt >= retryPolicy.maxAttempts) {
-                    outboxQueue.markAsFailed(item.id, "Max retries reached")
-                    continue
-                }
+            // اگر به سقف رسید → FAILED و برو سراغ آیتم بعدی
+            if (item.attempt >= retryPolicy.maxAttempts) {
+                outboxQueue.markAsFailed(item.id, "Max retries reached")
+                continue
+            }
 
-                val envelope = Envelope.text(item.body.toString(Charsets.UTF_8), MessageId(item.messageId))
+            try {
+                val envelope = Envelope.text(
+                    item.body.toString(Charsets.UTF_8),
+                    MessageId(item.messageId)
+                )
                 val payload = OutgoingPayload(envelope, item.destination)
                 connectionManager.send(payload)
                 outboxQueue.remove(item.id)
             } catch (e: Exception) {
                 outboxQueue.incrementAttempt(item.id, e.message ?: "Unknown error")
-                val delayMs = calculateBackoff(item.attempt, retryPolicy)
+
+                // attempt بعدی برای backoff
+                val nextAttempt = item.attempt + 1
+                val delayMs = calculateBackoff(nextAttempt, retryPolicy)
                 delay(delayMs)
             }
         }

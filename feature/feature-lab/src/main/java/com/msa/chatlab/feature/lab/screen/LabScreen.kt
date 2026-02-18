@@ -6,7 +6,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.msa.chatlab.core.data.lab.RunResult
 import com.msa.chatlab.core.data.lab.Scenario
+import com.msa.chatlab.core.domain.lab.RunProgress
 import com.msa.chatlab.feature.lab.state.LabUiEvent
 import com.msa.chatlab.feature.lab.state.LabUiState
 
@@ -51,27 +53,22 @@ private fun RunTab(state: LabUiState, onEvent: (LabUiEvent) -> Unit) {
     ) {
         Text("Lab", style = MaterialTheme.typography.headlineSmall)
 
-        // سناریوهای پیش‌فرض
-        ScenarioPresetsSection(onEvent = onEvent, isRunning = state.isRunning)
+        ScenarioPresetsSection(onEvent = onEvent, isRunning = state.progress.status == RunProgress.Status.Running)
 
-        // پیشرفت اجرا
-        if (state.isRunning && state.activeScenario != null) {
+        if (state.progress.status == RunProgress.Status.Running && state.activeScenario != null) {
             RunningSection(
                 scenario = state.activeScenario,
-                progressPercent = state.progressPercent,
-                counters = state.counters,
+                progress = state.progress,
                 onStop = { onEvent(LabUiEvent.Stop) }
             )
         }
 
-        // نتایج
-        state.runResult?.let { result ->
-            ResultsSection(result = result, onClear = { onEvent(LabUiEvent.ClearResults) })
+        state.runResult?.let {
+            ResultsSection(result = it, onClear = { onEvent(LabUiEvent.ClearResults) })
         }
 
-        // خطا
-        state.errorMessage?.let { error ->
-            ErrorSection(message = error, onClear = { onEvent(LabUiEvent.ClearResults) })
+        state.errorMessage?.let {
+            ErrorSection(message = it, onClear = { onEvent(LabUiEvent.ClearResults) })
         }
     }
 }
@@ -80,34 +77,14 @@ private fun RunTab(state: LabUiState, onEvent: (LabUiEvent) -> Unit) {
 private fun ScenarioPresetsSection(onEvent: (LabUiEvent) -> Unit, isRunning: Boolean) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Scenario Presets", style = MaterialTheme.typography.titleMedium)
-
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(
-                onClick = { onEvent(LabUiEvent.StartStable) },
-                enabled = !isRunning
-            ) { Text("Stable") }
-
-            Button(
-                onClick = { onEvent(LabUiEvent.StartIntermittent) },
-                enabled = !isRunning
-            ) { Text("Intermittent") }
-
-            Button(
-                onClick = { onEvent(LabUiEvent.StartOfflineBurst) },
-                enabled = !isRunning
-            ) { Text("Offline Burst") }
+            Button(onClick = { onEvent(LabUiEvent.StartStable) }, enabled = !isRunning) { Text("Stable") }
+            Button(onClick = { onEvent(LabUiEvent.StartIntermittent) }, enabled = !isRunning) { Text("Intermittent") }
+            Button(onClick = { onEvent(LabUiEvent.StartOfflineBurst) }, enabled = !isRunning) { Text("Offline Burst") }
         }
-
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(
-                onClick = { onEvent(LabUiEvent.StartLossy) },
-                enabled = !isRunning
-            ) { Text("Lossy") }
-
-            Button(
-                onClick = { onEvent(LabUiEvent.StartLoadBurst) },
-                enabled = !isRunning
-            ) { Text("Load Burst") }
+            Button(onClick = { onEvent(LabUiEvent.StartLossy) }, enabled = !isRunning) { Text("Lossy") }
+            Button(onClick = { onEvent(LabUiEvent.StartLoadBurst) }, enabled = !isRunning) { Text("Load Burst") }
         }
     }
 }
@@ -115,8 +92,7 @@ private fun ScenarioPresetsSection(onEvent: (LabUiEvent) -> Unit, isRunning: Boo
 @Composable
 private fun RunningSection(
     scenario: Scenario,
-    progressPercent: Int,
-    counters: LabUiState.Counters,
+    progress: RunProgress,
     onStop: () -> Unit
 ) {
     Card {
@@ -124,16 +100,16 @@ private fun RunningSection(
             Text("Running: ${scenario.preset.name}", style = MaterialTheme.typography.titleMedium)
 
             LinearProgressIndicator(
-                progress = { progressPercent / 100f },
+                progress = { progress.percent / 100f },
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Text("Progress: $progressPercent%")
+            Text("Progress: ${progress.percent}% (${progress.elapsedMs / 1000}s)")
 
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                CounterCard(title = "Sent", value = counters.sent.toString())
-                CounterCard(title = "Received", value = counters.received.toString())
-                CounterCard(title = "Failed", value = counters.failed.toString())
+                CounterCard(title = "Sent", value = progress.sentCount.toString())
+                CounterCard(title = "Received", value = progress.successCount.toString())
+                CounterCard(title = "Failed", value = progress.failCount.toString())
             }
 
             Button(onClick = onStop, modifier = Modifier.align(Alignment.End)) {
@@ -157,7 +133,7 @@ private fun CounterCard(title: String, value: String) {
 }
 
 @Composable
-private fun ResultsSection(result: com.msa.chatlab.core.data.lab.RunResult, onClear: () -> Unit) {
+private fun ResultsSection(result: RunResult, onClear: () -> Unit) {
     Card {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Results", style = MaterialTheme.typography.titleMedium)

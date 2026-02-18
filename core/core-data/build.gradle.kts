@@ -20,5 +20,6 @@ dependencies {
     api(project(":core:core-protocol-api"))
     api(project(":core:core-storage"))
 
+    api(project(":core:core-observability"))
     implementation(libs.kotlinx.coroutines.core)
 }
