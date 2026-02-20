@@ -43,6 +43,18 @@ object Migrations {
             """.trimIndent())
 
             db.execSQL("CREATE INDEX IF NOT EXISTS index_events_runId_timestamp ON events(runId, timestamp)")
+
+            // presets table (added in Phase 1)
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS presets(
+                    id TEXT NOT NULL PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    durationSec INTEGER NOT NULL,
+                    rps INTEGER NOT NULL,
+                    payloadBytes INTEGER NOT NULL,
+                    pattern TEXT NOT NULL
+                )
+            """.trimIndent())
         }
     }
 }

@@ -30,8 +30,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.msa.chatlab.core.common.ui.insets.AppContentInsets
-import com.msa.chatlab.core.common.ui.messenger.UiEffect
-import com.msa.chatlab.core.common.ui.messenger.UiMessenger
+import com.msa.chatlab.core.common.ui.UiEffect
+import com.msa.chatlab.core.common.ui.UiMessenger
 import com.msa.chatlab.feature.chat.route.ChatRootRoute
 import com.msa.chatlab.feature.connect.route.ConnectRoute
 import com.msa.chatlab.feature.debug.route.DebugRoute

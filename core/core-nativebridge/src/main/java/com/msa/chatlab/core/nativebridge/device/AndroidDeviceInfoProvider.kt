@@ -3,7 +3,6 @@ package com.msa.chatlab.core.nativebridge.device
 import android.content.Context
 import android.net.ConnectivityManager
 import android.os.Build
-import com.msa.chatlab.core.data.lab.DeviceInfoProvider
 
 class AndroidDeviceInfoProvider(
     private val context: Context
