@@ -6,7 +6,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.msa.chatlab.core.data.lab.RunResult
 import com.msa.chatlab.core.data.lab.Scenario
 import com.msa.chatlab.core.domain.lab.RunProgress
 import com.msa.chatlab.feature.lab.state.LabUiEvent

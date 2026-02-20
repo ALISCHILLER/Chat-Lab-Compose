@@ -4,6 +4,8 @@ import com.msa.chatlab.core.data.codec.ProfileJsonCodec
 import com.msa.chatlab.core.data.manager.ProfileManager
 import com.msa.chatlab.core.domain.lab.RunEvent
 import com.msa.chatlab.core.domain.lab.timestampMs
+import com.msa.chatlab.core.domain.model.RunResult
+import com.msa.chatlab.core.domain.model.RunSession
 import kotlinx.coroutines.runBlocking
 
 class SessionExporter(

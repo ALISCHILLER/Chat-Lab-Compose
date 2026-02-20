@@ -1,6 +1,5 @@
 package com.msa.chatlab.feature.lab.state
 
-import com.msa.chatlab.core.data.lab.RunResult
 import com.msa.chatlab.core.data.lab.Scenario
 import com.msa.chatlab.core.domain.lab.RunProgress
 

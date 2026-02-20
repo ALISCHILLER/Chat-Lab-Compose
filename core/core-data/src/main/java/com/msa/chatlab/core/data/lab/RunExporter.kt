@@ -1,5 +1,9 @@
 package com.msa.chatlab.core.data.lab
 
+import com.msa.chatlab.core.domain.lab.RunEvent
+import com.msa.chatlab.core.domain.model.RunResult
+import com.msa.chatlab.core.domain.model.RunSession
+
 class RunExporter {
 
     fun profileUsedJson(session: RunSession): String {
