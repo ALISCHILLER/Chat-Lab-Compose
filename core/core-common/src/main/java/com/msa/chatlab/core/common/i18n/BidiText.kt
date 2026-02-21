@@ -1,6 +1,6 @@
 package com.msa.chatlab.core.common.i18n
 
-import androidx.core.text.BidiFormatter
+import android.text.BidiFormatter
 import java.util.Locale
 
 /**

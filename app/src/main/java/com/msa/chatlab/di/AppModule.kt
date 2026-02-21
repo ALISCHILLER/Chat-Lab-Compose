@@ -5,9 +5,10 @@ import org.koin.dsl.module
 
 val AppModule = module {
     includes(
+        CoreModule,
+        DataModule,
         FeatureModule,
 
-        // Protocol Modules (هرکدام Binding می‌دهند)
         WsOkHttpProtocolModule,
         // KtorProtocolModule,
         // MqttProtocolModule,

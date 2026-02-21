@@ -1,8 +1,25 @@
 package com.msa.chatlab.feature.settings.screen
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.msa.chatlab.core.domain.model.ProtocolType
@@ -16,7 +33,7 @@ fun ProfileEditorSection(
 ) {
     val draft = state.editor ?: return
 
-    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = { onEvent(SettingsUiEvent.EditorClose) }) { Text("Back") }
@@ -42,22 +59,8 @@ fun ProfileEditorSection(
             modifier = Modifier.fillMaxWidth()
         )
 
-        OutlinedTextField(
-            value = draft.description,
-            onValueChange = { onEvent(SettingsUiEvent.EditorDescription(it)) },
-            label = { Text("Description") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = draft.tagsCsv,
-            onValueChange = { onEvent(SettingsUiEvent.EditorTags(it)) },
-            label = { Text("Tags (comma separated)") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
         ProtocolDropdown(
-            selected = draft.protocolType,
+            selected = com.msa.chatlab.core.domain.model.ProtocolType.valueOf(draft.protocol),
             onSelect = { onEvent(SettingsUiEvent.EditorProtocol(it.name)) }
         )
 
@@ -67,28 +70,6 @@ fun ProfileEditorSection(
             label = { Text("Endpoint") },
             modifier = Modifier.fillMaxWidth()
         )
-
-        OutlinedTextField(
-            value = draft.headersText,
-            onValueChange = { onEvent(SettingsUiEvent.EditorHeaders(it)) },
-            label = { Text("Headers (Key:Value per line)") },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 3
-        )
-
-        if (draft.protocolType == ProtocolType.WS_OKHTTP) {
-            OutlinedTextField(
-                value = draft.wsPingIntervalMs.toString(),
-                onValueChange = { onEvent(SettingsUiEvent.EditorWsPing(it)) },
-                label = { Text("Ping interval ms") },
-                modifier = Modifier.fillMaxWidth()
-            )
-        } else {
-            Text(
-                text = "Protocol-specific editor for ${draft.protocolType} will be added next.",
-                style = MaterialTheme.typography.bodySmall
-            )
-        }
     }
 }
 

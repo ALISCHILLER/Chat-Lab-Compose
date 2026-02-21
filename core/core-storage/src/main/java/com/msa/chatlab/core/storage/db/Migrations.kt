@@ -44,7 +44,7 @@ object Migrations {
 
             db.execSQL("CREATE INDEX IF NOT EXISTS index_events_runId_timestamp ON events(runId, timestamp)")
 
-            // presets table (added in Phase 1)
+            // presets table
             db.execSQL("""
                 CREATE TABLE IF NOT EXISTS presets(
                     id TEXT NOT NULL PRIMARY KEY,
@@ -55,6 +55,33 @@ object Migrations {
                     pattern TEXT NOT NULL
                 )
             """.trimIndent())
+        }
+    }
+
+    // ✅ outbox schema fix (lab-friendly)
+    val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("DROP TABLE IF EXISTS outbox")
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS outbox(
+                    profile_id TEXT NOT NULL,
+                    message_id TEXT NOT NULL,
+                    destination TEXT NOT NULL,
+                    content_type TEXT NOT NULL,
+                    headers_json TEXT NOT NULL,
+                    body BLOB NOT NULL,
+                    created_at INTEGER NOT NULL,
+                    attempt INTEGER NOT NULL DEFAULT 0,
+                    last_attempt_at INTEGER,
+                    last_error TEXT,
+                    status TEXT NOT NULL DEFAULT 'PENDING',
+                    updated_at INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY(profile_id, message_id)
+                )
+                """.trimIndent()
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_outbox_profile_status_created ON outbox(profile_id, status, created_at)")
         }
     }
 }

@@ -4,16 +4,9 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.msa.chatlab.core.storage.entity.MessageEntity
+import com.msa.chatlab.core.domain.model.ConversationRow
+import com.msa.chatlab.core.domain.model.MessageEntity
 import kotlinx.coroutines.flow.Flow
-
-data class ConversationRow(
-    val destination: String,
-    val lastAt: Long,
-    val lastText: String?,
-    val lastStatus: String?,
-    val total: Int
-)
 
 @Dao
 interface MessageDao {
@@ -27,25 +20,10 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE profile_id = :profileId AND destination = :destination ORDER BY created_at ASC")
     fun observeConversation(profileId: String, destination: String): Flow<List<MessageEntity>>
 
-    /*
-    @Query(
-        """
-        SELECT m.* FROM messages m
-        JOIN messages_fts f 
-          ON f.profile_id = m.profile_id AND f.message_id = m.message_id
-        WHERE m.profile_id = :profileId
-          AND messages_fts MATCH :query
-        ORDER BY m.created_at DESC
-        LIMIT 200
-        """
-    )
-    suspend fun searchFts(profileId: String, query: String): List<MessageEntity>
-    */
-
     @Query(
         """
         UPDATE messages 
-        SET queued = :queued, attempt = :attempt, status = :status, last_error = :lastError 
+        SET queued = :queued, attempt = :attempt, status = :status, last_error = :lastError, updated_at = :updatedAt
         WHERE profile_id = :profileId AND message_id = :messageId
         """
     )
@@ -55,11 +33,9 @@ interface MessageDao {
         queued: Boolean,
         attempt: Int,
         status: String,
-        lastError: String?
+        lastError: String?,
+        updatedAt: Long
     )
-
-    @Query("DELETE FROM messages WHERE profile_id = :profileId AND message_id = :messageId")
-    suspend fun delete(profileId: String, messageId: String)
 
     @Query("DELETE FROM messages WHERE profile_id = :profileId")
     suspend fun deleteByProfile(profileId: String)
@@ -86,4 +62,16 @@ interface MessageDao {
     """
     )
     fun observeConversations(profileId: String): Flow<List<ConversationRow>>
+
+    @Query("""
+        UPDATE messages
+        SET status = :status,
+            last_error = :lastError,
+            updated_at = :updatedAt
+        WHERE message_id = :messageId
+    """)
+    suspend fun updateStatusByMessageId(messageId: String, status: String, lastError: String?, updatedAt: Long)
+
+    @Query("DELETE FROM messages WHERE message_id = :messageId")
+    suspend fun deleteByMessageId(messageId: String)
 }

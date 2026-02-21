@@ -6,33 +6,30 @@ import com.msa.chatlab.core.storage.dao.ProfileDao
 import com.msa.chatlab.core.storage.entity.ProfileEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import java.util.UUID
 
 class RoomProfileRepository(
     private val dao: ProfileDao,
-    private val codec: ProfileJsonCodec,
-    private val clock: () -> Long = { System.currentTimeMillis() }
+    private val codec: ProfileJsonCodec
 ) : ProfileRepository {
 
     override fun observeAll(): Flow<List<Profile>> {
-        return dao.observeAll().map { list ->
-            list.mapNotNull { entity -> decodeEntityOrNull(entity) }
-        }
+        return dao.observeAll().map { list -> list.map { codec.decode(it.profileJson) } }
     }
 
     override suspend fun getAll(): List<Profile> {
-        return dao.getAll().mapNotNull { decodeEntityOrNull(it) }
+        return dao.getAll().map { codec.decode(it.profileJson) }
     }
 
     override suspend fun getById(id: String): Profile? {
-        val entity = dao.getById(id) ?: return null
-        return decodeEntityOrNull(entity)
+        return dao.getById(id)?.let { codec.decode(it.profileJson) }
     }
 
     override suspend fun upsert(profile: Profile): Profile {
-        val now = clock()
-        val json = codec.encode(profile)
+        val now = System.currentTimeMillis()
+        val existing = dao.getById(profile.id.value)
+        val createdAt = existing?.createdAt ?: now
 
+        val json = codec.encode(profile)
         val entity = ProfileEntity(
             id = profile.id.value,
             name = profile.name,
@@ -40,9 +37,10 @@ class RoomProfileRepository(
             tagsCsv = profile.tags.joinToString(","),
             protocolType = profile.protocolType.name,
             profileJson = json,
-            createdAt = now,     // فاز ۱: ساده
+            createdAt = createdAt,
             updatedAt = now
         )
+
         dao.upsert(entity)
         return profile
     }
@@ -52,14 +50,6 @@ class RoomProfileRepository(
     }
 
     override suspend fun search(query: String): List<Profile> {
-        return dao.search(query).mapNotNull { decodeEntityOrNull(it) }
-    }
-
-    private fun decodeEntityOrNull(entity: ProfileEntity): Profile? {
-        return runCatching { codec.decode(entity.profileJson) }.getOrNull()
-    }
-
-    companion object {
-        fun newId(): String = UUID.randomUUID().toString()
+        return dao.search(query).map { codec.decode(it.profileJson) }
     }
 }

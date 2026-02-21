@@ -5,13 +5,15 @@ import com.msa.chatlab.core.data.manager.ConnectionManager
 import com.msa.chatlab.core.data.manager.MessageSender
 import com.msa.chatlab.core.domain.lab.RunEvent
 import com.msa.chatlab.core.domain.lab.RunProgress
+import com.msa.chatlab.core.domain.model.RunResult
+import com.msa.chatlab.core.domain.model.RunSession
+import com.msa.chatlab.core.domain.model.Scenario
 import com.msa.chatlab.core.domain.value.RunId
 import com.msa.chatlab.core.domain.value.TimestampMillis
 import com.msa.chatlab.core.protocol.api.event.TransportEvent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
 
 class ScenarioExecutor(
     private val scope: CoroutineScope,
@@ -49,15 +51,10 @@ class ScenarioExecutor(
         val runId = RunId("run-$startMs")
 
         currentRun = RunSession(
-            profileId = profile.id,
             runId = runId,
             scenario = scenario,
-            profileName = profile.name,
-            protocolType = profile.protocolType.name,
-            startedAt = TimestampMillis(startMs),
-            seed = scenario.seed,
-            deviceModel = deviceInfo.deviceModel(),
-            osVersion = deviceInfo.osVersion(),
+            startedAt = startMs,
+            seed = System.currentTimeMillis(),
             networkLabel = deviceInfo.networkLabel()
         )
 
@@ -66,30 +63,22 @@ class ScenarioExecutor(
 
         startCollectingEvents()
 
-        val chaos = ChaosEngine(scenario.seed)
+        val chaos = ChaosEngine(currentRun!!.seed)
 
         val load = LoadGenerator(
             scope = scope,
-            durationMs = scenario.durationMs,
-            ratePerSecond = scenario.messageRatePerSecond,
-            burstEvery = scenario.burstEvery,
-            burstSize = scenario.burstSize
+            durationMs = scenario.durationSec * 1000L,
+            ratePerSecond = scenario.rps.toDouble(),
+            burstEvery = 0,
+            burstSize = 0
         ) { text ->
-            if (chaos.shouldDrop(scenario.dropRatePercent / 100.0)) {
-                metrics.onFailed()
-                record(RunEvent.Failed(t = nowTs(), messageId = null, error = "lab_drop"))
-                return@LoadGenerator
-            }
-            val extraDelay = chaos.extraDelayMs(scenario.minExtraDelayMs, scenario.maxExtraDelayMs)
-            if (extraDelay > 0) delay(extraDelay)
-
             messageSender.sendText(text, "default")
         }
 
         val progressUpdater = scope.launch {
             while (isActive) {
                 val elapsed = System.currentTimeMillis() - startMs
-                val percent = ((elapsed.toDouble() / scenario.durationMs) * 100).toInt().coerceIn(0, 100)
+                val percent = ((elapsed.toDouble() / (scenario.durationSec * 1000L)) * 100).toInt().coerceIn(0, 100)
                 _progress.value = _progress.value.copy(
                     percent = percent,
                     elapsedMs = elapsed,
@@ -103,7 +92,7 @@ class ScenarioExecutor(
 
         val toggler = scope.launch { /* ... */ }
         load.start()
-        delay(scenario.durationMs + 1500)
+        delay(scenario.durationSec * 1000L + 1500)
 
         load.stop()
         toggler.cancel()
@@ -111,7 +100,7 @@ class ScenarioExecutor(
         connectionManager.disconnect()
         collectorJob?.cancel()
 
-        val result = metrics.buildResult(durationMs = scenario.durationMs)
+        val result = metrics.buildResult(session = requireNotNull(currentRun), endedAt = System.currentTimeMillis())
         _progress.value = _progress.value.copy(status = RunProgress.Status.Completed, percent = 100)
 
         return RunBundle(
@@ -133,8 +122,8 @@ class ScenarioExecutor(
                         record(RunEvent.Sent(t = nowTs(), messageId = ev.messageId))
                     }
                     is TransportEvent.MessageReceived -> {
-                        metrics.onReceived(ev.payload.envelope.messageId.value, nowTs().value)
-                        record(RunEvent.Received(t = nowTs(), messageId = ev.payload.envelope.messageId.value))
+                        metrics.onReceived(ev.payload.envelope?.messageId?.value, nowTs().value)
+                        record(RunEvent.Received(t = nowTs(), messageId = ev.payload.envelope?.messageId?.value))
                     }
                     is TransportEvent.ErrorOccurred -> {
                         metrics.onFailed()

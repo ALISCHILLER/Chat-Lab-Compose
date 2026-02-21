@@ -11,11 +11,11 @@ import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
 val FeatureModule = module {
-    viewModel { ConnectViewModel(get(), get(), get()) }
-    viewModel { SettingsViewModel(get(), get(), get()) }
-    viewModel { ChatViewModel(get(), get(), get()) }
-    viewModel { OutboxViewModel(get()) }
-    viewModel { LabViewModel(get(), get()) }
     viewModel { ChatListViewModel(get(), get()) }
     viewModel { ChatThreadViewModel(get(), get(), get()) }
+    viewModel { OutboxViewModel(get(), get()) }
+    viewModel { ConnectViewModel(get(), get(), get()) }
+    viewModel { SettingsViewModel(get(), get(), get()) }
+    viewModel { LabViewModel(get(), get()) }
+    viewModel { ChatViewModel(get(), get(), get(), get(), get()) }
 }

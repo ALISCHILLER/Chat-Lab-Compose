@@ -1,5 +1,7 @@
 package com.msa.chatlab.core.data.lab
 
+import com.msa.chatlab.core.domain.model.RunResult
+import com.msa.chatlab.core.domain.model.RunSession
 import kotlin.math.max
 
 class MetricsCalculator {
@@ -33,26 +35,13 @@ class MetricsCalculator {
 
     fun onFailed() { counters.failed++ }
 
-    fun buildResult(durationMs: Long): RunResult {
-        val sorted = latencies.sorted()
-        fun pct(p: Double): Long? {
-            if (sorted.isEmpty()) return null
-            val idx = (sorted.size * p).toInt().coerceIn(0, sorted.lastIndex)
-            return sorted[idx]
-        }
-        val throughput = (counters.sent.toDouble() / max(durationMs / 1000.0, 1.0))
-        val successRate = if (counters.sent > 0) (counters.received.toDouble() / counters.sent) * 100 else 0.0
-
+    fun buildResult(session: RunSession, endedAt: Long): RunResult {
         return RunResult(
-            sent = counters.sent,
-            received = counters.received,
-            failed = counters.failed,
-            enqueued = counters.enqueued,
-            latencyP50Ms = pct(0.50),
-            latencyP95Ms = pct(0.95),
-            latencyP99Ms = pct(0.99),
-            throughputMsgPerSec = throughput,
-            successRatePercent = successRate
+            session = session,
+            endedAt = endedAt,
+            sent = sentAt.keys.map { com.msa.chatlab.core.domain.value.MessageId(it) },
+            failed = emptyList(),
+            received = emptyList()
         )
     }
 }

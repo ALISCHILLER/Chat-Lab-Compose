@@ -29,9 +29,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.msa.chatlab.core.common.ui.insets.AppContentInsets
+import com.msa.chatlab.bootstrap.StartupNoticeStore
 import com.msa.chatlab.core.common.ui.UiEffect
 import com.msa.chatlab.core.common.ui.UiMessenger
+import com.msa.chatlab.core.common.ui.insets.AppContentInsets
 import com.msa.chatlab.feature.chat.route.ChatRootRoute
 import com.msa.chatlab.feature.connect.route.ConnectRoute
 import com.msa.chatlab.feature.debug.route.DebugRoute
@@ -51,6 +52,7 @@ sealed class TopLevel(val route: String, val label: String, val icon: ImageVecto
 fun AppShell(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     val messenger: UiMessenger = get()
+    val noticeStore: StartupNoticeStore = get()
 
     val items = listOf(TopLevel.Chat, TopLevel.Lab, TopLevel.Connect, TopLevel.Settings, TopLevel.Debug)
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -59,6 +61,10 @@ fun AppShell(modifier: Modifier = Modifier) {
     val snackHost = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
+        noticeStore.consume()?.let { msg ->
+            snackHost.showSnackbar(msg)
+        }
+
         messenger.effects.collect { eff ->
             when (eff) {
                 is UiEffect.Snackbar -> snackHost.showSnackbar(eff.message)

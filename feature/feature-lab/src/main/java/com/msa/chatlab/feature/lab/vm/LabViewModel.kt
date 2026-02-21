@@ -2,12 +2,10 @@ package com.msa.chatlab.feature.lab.vm
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.msa.chatlab.core.data.lab.Scenario
 import com.msa.chatlab.core.data.lab.ScenarioExecutor
 import com.msa.chatlab.core.data.lab.SessionExporter
-import com.msa.chatlab.core.data.lab.defaultFor
 import com.msa.chatlab.core.domain.model.ScenarioPreset
-import com.msa.chatlab.feature.lab.mapper.toDataPreset
+import com.msa.chatlab.feature.lab.mapper.toDataScenario
 import com.msa.chatlab.feature.lab.state.LabUiEffect
 import com.msa.chatlab.feature.lab.state.LabUiEvent
 import com.msa.chatlab.feature.lab.state.LabUiState
@@ -51,13 +49,14 @@ class LabViewModel(
             is LabUiEvent.StartLoadBurst -> startScenario(ScenarioPreset.LoadBurst)
             is LabUiEvent.Stop -> stopExecution()
             is LabUiEvent.ClearResults -> _uiState.update { it.copy(runResult = null, errorMessage = null, pastResults = emptyList()) }
+            else -> {}
         }
     }
 
     private fun startScenario(preset: ScenarioPreset) {
         if (_uiState.value.progress.status == com.msa.chatlab.core.domain.lab.RunProgress.Status.Running) return
 
-        val scenario = Scenario().defaultFor(preset.toDataPreset())
+        val scenario = preset.toDataScenario()
         _uiState.update { it.copy(activeScenario = scenario, runResult = null, errorMessage = null) }
 
         executionJob = viewModelScope.launch {

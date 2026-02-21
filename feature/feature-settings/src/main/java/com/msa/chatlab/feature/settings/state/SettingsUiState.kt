@@ -7,15 +7,13 @@ data class SettingsUiState(
     val searchQuery: String = "",
     val cards: List<UiProfileCard> = emptyList(),
 
-    val editor: EditorDraft? = null,   // اگر null → در حالت list هستیم
+    val editor: ProfileEditorUi? = null,
 
     val supportedProtocols: List<ProtocolType> = emptyList(),
 
     val showImportDialog: Boolean = false,
-    val importText: String = "",
-
     val showExportDialog: Boolean = false,
-    val exportText: String = "",
+    val importExport: ImportExportUi = ImportExportUi(),
 
     val validationErrors: List<String> = emptyList(),
     val lastError: String? = null

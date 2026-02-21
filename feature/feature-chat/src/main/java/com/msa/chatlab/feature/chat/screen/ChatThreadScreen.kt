@@ -6,17 +6,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -25,6 +22,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,10 +42,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.msa.chatlab.core.common.ui.theme.LocalSpacing
+import com.msa.chatlab.core.designsystem.theme.LocalSpacing
+import com.msa.chatlab.core.domain.model.ChatMessage
+import com.msa.chatlab.core.domain.model.MessageDirection
 import com.msa.chatlab.feature.chat.vm.ChatThreadUiState
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ChatThreadScreen(
     padding: PaddingValues,
@@ -89,12 +89,12 @@ fun ChatThreadScreen(
                 state = listState,
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                items(state.messages, key = { it.messageId }) { m ->
+                itemsIndexed(state.messages, key = { index, item -> item.id.value }) { index, m ->
                     Column(Modifier.animateItemPlacement()) {
                         Bubble(
-                            isMe = m.direction == "OUT",
+                            isMe = m.direction == MessageDirection.OUT,
                             text = m.text,
-                            meta = "${m.status}${if (m.attempt > 0) " • try:${m.attempt}" else ""}${m.lastError?.let { " • $it" } ?: ""}"
+                            meta = "${m.status}${m.errorMessage?.let { " • $it" } ?: ""}"
                         )
                     }
                 }

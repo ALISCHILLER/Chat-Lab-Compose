@@ -1,49 +1,45 @@
 package com.msa.chatlab.core.data.manager
 
+import com.msa.chatlab.core.data.active.ActiveProfileStore
 import com.msa.chatlab.core.data.outbox.OutboxItem
 import com.msa.chatlab.core.data.outbox.OutboxQueue
+import com.msa.chatlab.core.domain.repository.MessageRepository
 import com.msa.chatlab.core.domain.value.MessageId
-import com.msa.chatlab.core.protocol.api.payload.Envelope
-import com.msa.chatlab.core.protocol.api.payload.OutgoingPayload
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import com.msa.chatlab.core.storage.entity.OutboxStatus
 import java.util.UUID
 
 class MessageSender(
-    private val connectionManager: ConnectionManager,
+    private val activeProfileStore: ActiveProfileStore,
+    private val messageRepository: MessageRepository,
     private val outboxQueue: OutboxQueue
 ) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    suspend fun sendText(text: String, destination: String) {
+        val profile = activeProfileStore.getActiveNow() ?: error("No active profile")
 
-    fun sendText(text: String, destination: String) {
-        scope.launch {
-            val messageId = UUID.randomUUID().toString()
+        val messageId = MessageId(UUID.randomUUID().toString())
 
-            val item = OutboxItem(
-                id = UUID.randomUUID().toString(),
-                messageId = messageId,
+        // 1) OUT message goes to DB
+        messageRepository.insertOutgoing(
+            profileId = profile.id,
+            messageId = messageId,
+            text = text,
+            destination = destination
+        )
+
+        // 2) enqueue outbox (processor will send when connected)
+        outboxQueue.enqueue(
+            OutboxItem(
+                profileId = profile.id.value,
+                messageId = messageId.value,
                 destination = destination,
                 contentType = "text/plain",
                 headersJson = "{}",
                 body = text.encodeToByteArray(),
+                createdAt = System.currentTimeMillis(),
                 attempt = 0,
-                createdAt = System.currentTimeMillis()
+                lastError = null,
+                status = OutboxStatus.PENDING
             )
-
-            if (!connectionManager.isConnectedNow()) {
-                outboxQueue.enqueue(item)
-                return@launch
-            }
-
-            try {
-                val envelope = Envelope.text(text, MessageId(messageId))
-                val payload = OutgoingPayload(envelope, destination)
-                connectionManager.send(payload)
-            } catch (t: Throwable) {
-                outboxQueue.enqueue(item.copy(lastError = t.message))
-            }
-        }
+        )
     }
 }

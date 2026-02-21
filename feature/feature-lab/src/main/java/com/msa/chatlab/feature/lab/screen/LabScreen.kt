@@ -6,8 +6,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.msa.chatlab.core.data.lab.Scenario
 import com.msa.chatlab.core.domain.lab.RunProgress
+import com.msa.chatlab.core.domain.model.RunResult
+import com.msa.chatlab.core.domain.model.Scenario
 import com.msa.chatlab.feature.lab.state.LabUiEvent
 import com.msa.chatlab.feature.lab.state.LabUiState
 
@@ -96,7 +97,7 @@ private fun RunningSection(
 ) {
     Card {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Running: ${scenario.preset.name}", style = MaterialTheme.typography.titleMedium)
+            Text("Running: ${scenario.name}", style = MaterialTheme.typography.titleMedium)
 
             LinearProgressIndicator(
                 progress = { progress.percent / 100f },
@@ -137,11 +138,9 @@ private fun ResultsSection(result: RunResult, onClear: () -> Unit) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Results", style = MaterialTheme.typography.titleMedium)
 
-            Text("Sent: ${result.sent}")
-            Text("Received: ${result.received}")
-            Text("Failed: ${result.failed}")
-            Text("Success Rate: ${result.successRatePercent?.let { "%.1f%%".format(it) } ?: "N/A"}")
-            Text("Latency P95: ${result.latencyP95Ms?.let { "${it}ms" } ?: "N/A"}")
+            Text("Sent: ${result.sent.size}")
+            Text("Received: ${result.received.size}")
+            Text("Failed: ${result.failed.size}")
 
             Button(onClick = onClear, modifier = Modifier.align(Alignment.End)) {
                 Text("Clear Results")

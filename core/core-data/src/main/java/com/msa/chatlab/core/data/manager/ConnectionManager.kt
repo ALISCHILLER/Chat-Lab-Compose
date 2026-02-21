@@ -43,7 +43,6 @@ class ConnectionManager(
 
     suspend fun prepareTransport() {
         logger.i("ConnectionManager", "prepareTransport()")
-        crash.breadcrumb("prepareTransport")
 
         // جلوگیری از leak: bind قبلی cancel شود
         bindJob?.cancel()
@@ -62,7 +61,6 @@ class ConnectionManager(
             _transport.value ?: error("Transport not prepared")
         }
 
-        crash.breadcrumb("connect()")
         logger.i("ConnectionManager", "connect()")
 
         runCatching { t.connect() }.onFailure { ex ->
@@ -71,14 +69,13 @@ class ConnectionManager(
                 message = ex.message ?: "connect failed",
                 throwable = ex
             )
-            crash.record(ex, mapOf("code" to err.code))
-            logger.e("ConnectionManager", "connect failed", mapOf("code" to err.code), ex)
+            crash.report(ex, "connect failed")
+            logger.e("ConnectionManager", "connect failed", ex)
             _events.tryEmit(TransportEvent.ErrorOccurred(err))
         }
     }
 
     suspend fun disconnect() {
-        crash.breadcrumb("disconnect()")
         logger.i("ConnectionManager", "disconnect()")
         _transport.value?.let { runCatching { it.disconnect() } }
     }
@@ -89,7 +86,6 @@ class ConnectionManager(
                 t.connectionState.collect { st ->
                     _connectionState.value = st
                     logger.d("Transport", "state=$st")
-                    crash.setKey("connection_state", st::class.java.simpleName)
                 }
             }
             launch {
@@ -99,14 +95,6 @@ class ConnectionManager(
             }
             launch {
                 t.events.collect { ev ->
-                    // observability
-                    when (ev) {
-                        is TransportEvent.Connected -> crash.breadcrumb("TransportEvent.Connected")
-                        is TransportEvent.Disconnected -> crash.breadcrumb("TransportEvent.Disconnected", mapOf("reason" to (ev.reason ?: "")))
-                        is TransportEvent.MessageSent -> crash.breadcrumb("TransportEvent.MessageSent", mapOf("id" to ev.messageId))
-                        is TransportEvent.MessageReceived -> crash.breadcrumb("TransportEvent.MessageReceived", mapOf("id" to ev.payload.envelope.messageId.value))
-                        is TransportEvent.ErrorOccurred -> crash.breadcrumb("TransportEvent.Error", mapOf("code" to ev.error.code))
-                    }
                     _events.emit(ev)
                 }
             }

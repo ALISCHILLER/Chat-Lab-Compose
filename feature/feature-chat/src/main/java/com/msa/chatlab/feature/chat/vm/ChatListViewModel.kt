@@ -3,8 +3,8 @@ package com.msa.chatlab.feature.chat.vm
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.msa.chatlab.core.data.active.ActiveProfileStore
+import com.msa.chatlab.core.domain.model.ConversationRow
 import com.msa.chatlab.core.domain.repository.MessageRepository
-import com.msa.chatlab.core.storage.dao.ConversationRow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow

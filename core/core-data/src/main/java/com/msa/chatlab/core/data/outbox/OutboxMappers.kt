@@ -4,21 +4,7 @@ import com.msa.chatlab.core.storage.entity.OutboxItemEntity
 
 fun OutboxItem.toEntity(): OutboxItemEntity {
     return OutboxItemEntity(
-        id = id,
-        messageId = messageId,
-        destination = destination ?: "",
-        contentType = contentType,
-        headersJson = headersJson,
-        body = body,
-        createdAt = createdAt,
-        attempt = attempt,
-        lastError = lastError
-    )
-}
-
-fun OutboxItemEntity.toDomain(): OutboxItem {
-    return OutboxItem(
-        id = id,
+        profileId = profileId,
         messageId = messageId,
         destination = destination,
         contentType = contentType,
@@ -26,6 +12,23 @@ fun OutboxItemEntity.toDomain(): OutboxItem {
         body = body,
         createdAt = createdAt,
         attempt = attempt,
-        lastError = lastError
+        lastError = lastError,
+        status = status,
+        updatedAt = System.currentTimeMillis()
+    )
+}
+
+fun OutboxItemEntity.toDomain(): OutboxItem {
+    return OutboxItem(
+        profileId = profileId,
+        messageId = messageId,
+        destination = destination,
+        contentType = contentType,
+        headersJson = headersJson,
+        body = body,
+        createdAt = createdAt,
+        attempt = attempt,
+        lastError = lastError,
+        status = status
     )
 }

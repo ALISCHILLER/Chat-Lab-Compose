@@ -23,8 +23,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.msa.chatlab.core.common.ui.components.EmptyState
 import com.msa.chatlab.core.common.ui.components.SectionCard
-import com.msa.chatlab.core.common.ui.theme.LocalSpacing
-import com.msa.chatlab.core.storage.dao.ConversationRow
+import com.msa.chatlab.core.designsystem.theme.LocalSpacing
+import com.msa.chatlab.core.domain.model.ConversationRow
 import com.msa.chatlab.feature.chat.vm.ChatListViewModel
 import org.koin.androidx.compose.koinViewModel
 
@@ -81,7 +81,7 @@ private fun ChatListScreen(
                                 overflow = TextOverflow.Ellipsis,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Text("Total: ${row.total} • Last: ${row.lastStatus ?: "-}",
+                            Text("Total: ${row.total} • Last: ${row.lastStatus ?: "-"}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

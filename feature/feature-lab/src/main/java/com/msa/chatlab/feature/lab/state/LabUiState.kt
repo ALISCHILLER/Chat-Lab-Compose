@@ -1,7 +1,8 @@
 package com.msa.chatlab.feature.lab.state
 
-import com.msa.chatlab.core.data.lab.Scenario
 import com.msa.chatlab.core.domain.lab.RunProgress
+import com.msa.chatlab.core.domain.model.RunResult
+import com.msa.chatlab.core.domain.model.Scenario
 
 data class LabUiState(
     val activeScenario: Scenario? = null,

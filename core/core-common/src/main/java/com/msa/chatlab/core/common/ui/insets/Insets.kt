@@ -3,12 +3,14 @@ package com.msa.chatlab.core.common.ui.insets
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.union
+import androidx.compose.runtime.Composable
 
-// برای Scaffold محتوا
+// For Scaffold content
 val AppContentInsets: WindowInsets
+    @Composable
     get() = WindowInsets.safeDrawing
 
-// برای composer پایین صفحه که با کیبورد بالا بیاد
+// For the composer at the bottom of the screen to move up with the keyboard
 val AppImeInsets: WindowInsets
-    get() = WindowInsets.safeDrawing.union(WindowInsets.ime)
+    @Composable
+    get() = WindowInsets.ime

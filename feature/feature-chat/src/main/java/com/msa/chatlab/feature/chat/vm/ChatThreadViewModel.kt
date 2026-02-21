@@ -4,8 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.msa.chatlab.core.data.active.ActiveProfileStore
 import com.msa.chatlab.core.data.manager.MessageSender
+import com.msa.chatlab.core.domain.model.ChatMessage
 import com.msa.chatlab.core.domain.repository.MessageRepository
-import com.msa.chatlab.core.storage.entity.MessageEntity
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
 
 data class ChatThreadUiState(
     val profileName: String = "No profile",
-    val messages: List<MessageEntity> = emptyList(),
+    val messages: List<ChatMessage> = emptyList(),
     val error: String? = null
 )
 

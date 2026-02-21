@@ -2,38 +2,49 @@ package com.msa.chatlab.feature.chat.vm
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.msa.chatlab.core.data.outbox.OutboxItem
+import com.msa.chatlab.core.data.active.ActiveProfileStore
 import com.msa.chatlab.core.data.outbox.OutboxQueue
 import com.msa.chatlab.core.storage.entity.OutboxStatus
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class OutboxUiState(
-    val pendingItems: List<OutboxItem> = emptyList(),
-    val failedItems: List<OutboxItem> = emptyList()
+    val pendingItems: List<com.msa.chatlab.core.data.outbox.OutboxItem> = emptyList(),
+    val failedItems: List<com.msa.chatlab.core.data.outbox.OutboxItem> = emptyList()
 )
 
-class OutboxViewModel(private val outboxQueue: OutboxQueue) : ViewModel() {
+class OutboxViewModel(
+    private val activeProfileStore: ActiveProfileStore,
+    private val outboxQueue: OutboxQueue
+) : ViewModel() {
 
-    val uiState: StateFlow<OutboxUiState> = combine(
-        outboxQueue.observeByStatus(OutboxStatus.PENDING),
-        outboxQueue.observeByStatus(OutboxStatus.FAILED)
-    ) { pending, failed ->
-        OutboxUiState(pendingItems = pending, failedItems = failed)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OutboxUiState())
+    val uiState: StateFlow<OutboxUiState> =
+        activeProfileStore.activeProfile.flatMapLatest { profile ->
+            if (profile == null) flowOf(OutboxUiState())
+            else combine(
+                outboxQueue.observeByStatus(profile.id.value, OutboxStatus.PENDING),
+                outboxQueue.observeByStatus(profile.id.value, OutboxStatus.FAILED)
+            ) { pending, failed ->
+                OutboxUiState(pendingItems = pending, failedItems = failed)
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OutboxUiState())
 
     fun onRetryAll() {
         viewModelScope.launch {
-            outboxQueue.retryAllFailed()
+            val id = activeProfileStore.getActiveNow()?.id?.value ?: return@launch
+            outboxQueue.retryAllFailed(id)
         }
     }
 
     fun onClearAll() {
         viewModelScope.launch {
-            outboxQueue.clearFailed()
+            val id = activeProfileStore.getActiveNow()?.id?.value ?: return@launch
+            outboxQueue.clearFailed(id)
         }
     }
 }

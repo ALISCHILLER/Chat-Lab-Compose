@@ -1,5 +1,6 @@
 package com.msa.chatlab.core.data.lab
 
+import com.msa.chatlab.core.domain.model.Scenario
 import kotlin.random.Random
 
 class ChaosEngine(seed: Long) {
@@ -13,6 +14,5 @@ class ChaosEngine(seed: Long) {
         return minMs + (r.nextDouble() * (maxMs - minMs)).toLong()
     }
 
-    fun isInDisconnectWindow(elapsedMs: Long, windows: List<Scenario.DisconnectWindow>): Boolean =
-        windows.any { w -> elapsedMs in w.atMsFromStart until (w.atMsFromStart + w.durationMs) }
+    fun isInDisconnectWindow(elapsedMs: Long, scenario: Scenario): Boolean = false
 }

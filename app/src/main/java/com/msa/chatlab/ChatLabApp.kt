@@ -2,9 +2,9 @@ package com.msa.chatlab
 
 import android.app.Application
 import android.os.StrictMode
+import com.msa.chatlab.core.data.manager.TransportMessageBinder
 import com.msa.chatlab.core.data.outbox.OutboxProcessor
 import com.msa.chatlab.di.AppModule
-import com.msa.chatlab.di.CoreModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
@@ -25,13 +25,10 @@ class ChatLabApp : Application(), KoinComponent {
 
         startKoin {
             androidContext(this@ChatLabApp)
-            modules(
-                AppModule,
-                CoreModule,
-            )
+            modules(AppModule) // ✅ فقط همین
         }
 
-        // Start the OutboxProcessor
+        get<TransportMessageBinder>().start()
         get<OutboxProcessor>().start()
     }
 }

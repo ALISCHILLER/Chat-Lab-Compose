@@ -7,7 +7,6 @@ data class RunProgress(
     val sentCount: Long = 0,
     val successCount: Long = 0,
     val failCount: Long = 0,
-    val currentRate: Double = 0.0,
     val lastError: String? = null
 ) {
     enum class Status { Idle, Running, Completed, Failed }

@@ -11,7 +11,7 @@ import java.util.UUID
 
 class ProfileManager(
     private val repo: ProfileRepository,
-    private val activeStore: ActiveProfileStore
+    val activeStore: ActiveProfileStore
 ) {
     fun observeProfiles(): Flow<List<Profile>> = repo.observeAll()
 

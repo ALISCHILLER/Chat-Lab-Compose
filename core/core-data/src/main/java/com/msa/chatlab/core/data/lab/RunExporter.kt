@@ -1,18 +1,17 @@
 package com.msa.chatlab.core.data.lab
 
 import com.msa.chatlab.core.domain.lab.RunEvent
+import com.msa.chatlab.core.domain.model.Profile
 import com.msa.chatlab.core.domain.model.RunResult
 import com.msa.chatlab.core.domain.model.RunSession
 
 class RunExporter {
 
-    fun profileUsedJson(session: RunSession): String {
-        // اینجا اگر ProfileJsonCodec داری، بهتره codec.encode(profile) را ذخیره کنی.
-        // فعلاً مینیمال و استاندارد:
+    fun profileUsedJson(profile: Profile): String {
         return """
         {
-          "profile_name": "${session.profileName}",
-          "protocol_type": "${session.protocolType}"
+          "profile_name": "${profile.name}",
+          "protocol_type": "${profile.protocolType}"
         }
         """.trimIndent()
     }
@@ -43,21 +42,13 @@ class RunExporter {
         return """
         {
           "run_id": "${session.runId.value}",
-          "scenario": "${session.scenario.preset.name}",
+          "scenario": "${session.scenario.name}",
           "seed": ${session.seed},
-          "started_at": ${session.startedAt.value},
-          "device_model": "${session.deviceModel}",
-          "os_version": "${session.osVersion}",
-          "network": "${session.networkLabel}",
-          "sent": ${result.sent},
-          "received": ${result.received},
-          "failed": ${result.failed},
-          "enqueued": ${result.enqueued},
-          "latency_p50_ms": ${result.latencyP50Ms ?: "null"},
-          "latency_p95_ms": ${result.latencyP95Ms ?: "null"},
-          "latency_p99_ms": ${result.latencyP99Ms ?: "null"},
-          "throughput_msg_per_sec": ${result.throughputMsgPerSec ?: "null"},
-          "success_rate_percent": ${result.successRatePercent ?: "null"}
+          "started_at": ${session.startedAt},
+          "sent": ${result.sent.size},
+          "received": ${result.received.size},
+          "failed": ${result.failed.size},
+          "enqueued": ${session.enqueued.size}
         }
         """.trimIndent()
     }
