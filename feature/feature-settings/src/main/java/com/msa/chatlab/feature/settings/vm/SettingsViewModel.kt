@@ -5,17 +5,21 @@ import androidx.lifecycle.viewModelScope
 import com.msa.chatlab.core.data.active.ActiveProfileStore
 import com.msa.chatlab.core.data.codec.ProfileJsonCodec
 import com.msa.chatlab.core.data.manager.ProfileManager
-import com.msa.chatlab.core.domain.model.*
+import com.msa.chatlab.core.data.registry.ProtocolRegistry
+import com.msa.chatlab.core.domain.model.Profile
+import com.msa.chatlab.core.domain.model.ProtocolType
 import com.msa.chatlab.core.domain.value.ProfileId
 import com.msa.chatlab.feature.settings.state.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 import java.util.UUID
 
 class SettingsViewModel(
     private val profileManager: ProfileManager,
     private val activeStore: ActiveProfileStore,
-    private val codec: ProfileJsonCodec // همون codec که تو core-data ساختیم
+    private val codec: ProfileJsonCodec,
+    private val registry: ProtocolRegistry
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsUiState())
@@ -24,114 +28,98 @@ class SettingsViewModel(
     private val _effects = MutableSharedFlow<SettingsUiEffect>(extraBufferCapacity = 16)
     val effects = _effects.asSharedFlow()
 
-    private val profilesFlow = profileManager.observeProfiles()
-    private val activeFlow = activeStore.activeProfile
-
     init {
-        // Set supported protocols
-        _state.value = _state.value.copy(supportedProtocols = listOf(ProtocolType.WS_OKHTTP))
+        _state.update { it.copy(supportedProtocols = ProtocolType.values().filter { t -> registry.has(t) }) }
 
         viewModelScope.launch {
             combine(
-                profilesFlow,
-                activeFlow,
+                profileManager.observeProfiles(),
+                activeStore.activeProfile,
                 state.map { it.searchQuery }.distinctUntilChanged()
             ) { profiles, active, q ->
                 val filtered = if (q.isBlank()) profiles else profiles.filter {
-                    it.name.contains(q, ignoreCase = true) ||
-                        it.description.contains(q, ignoreCase = true) ||
-                        it.tags.any { t -> t.contains(q, ignoreCase = true) }
+                    it.name.contains(q, true) ||
+                            it.description.contains(q, true) ||
+                            it.tags.any { t -> t.contains(q, true) }
                 }
 
                 val cards = filtered.map {
                     UiProfileCard(
                         id = it.id.value,
                         title = it.name.ifBlank { "(No name)" },
-                        subtitle = "${it.protocolType} • ${it.transportConfig.endpoint}",
+                        subtitle = "${it.protocolType.name} • ${it.transportConfig.endpoint}",
                         isActive = (active?.id == it.id)
                     )
                 }
+
                 _state.value.copy(
                     isLoading = false,
                     cards = cards
                 )
-            }.collect { newState ->
-                _state.value = newState
-            }
+            }.collect { _state.value = it }
         }
     }
 
     fun onEvent(ev: SettingsUiEvent) {
         when (ev) {
+            is SettingsUiEvent.SearchChanged -> _state.update { it.copy(searchQuery = ev.value) }
 
-            is SettingsUiEvent.SearchChanged -> {
-                _state.value = _state.value.copy(searchQuery = ev.value)
-            }
-
-            SettingsUiEvent.CreateNew -> createNew()
+            SettingsUiEvent.NewProfile -> openNew()
             is SettingsUiEvent.Edit -> openEditor(ev.id)
-            is SettingsUiEvent.Duplicate -> duplicate(ev.id)
-            is SettingsUiEvent.Delete -> delete(ev.id)
             is SettingsUiEvent.Apply -> apply(ev.id)
+            is SettingsUiEvent.Duplicate -> duplicate(ev.id)
 
-            is SettingsUiEvent.Export -> export(ev.id)
-            SettingsUiEvent.CloseExport -> _state.value = _state.value.copy(showExportDialog = false, exportText = "")
+            is SettingsUiEvent.RequestDelete -> _state.update { it.copy(pendingDeleteId = ev.id) }
+            SettingsUiEvent.DismissDelete -> _state.update { it.copy(pendingDeleteId = null) }
+            SettingsUiEvent.ConfirmDelete -> confirmDelete()
 
-            SettingsUiEvent.OpenImport -> _state.value = _state.value.copy(showImportDialog = true, importText = "")
-            SettingsUiEvent.CloseImport -> _state.value = _state.value.copy(showImportDialog = false, importText = "")
-            is SettingsUiEvent.ImportTextChanged -> _state.value = _state.value.copy(importText = ev.value)
+            SettingsUiEvent.OpenImport -> _state.update { it.copy(showImportDialog = true, importExport = ImportExportUi()) }
+            SettingsUiEvent.CloseImport -> _state.update { it.copy(showImportDialog = false, importExport = ImportExportUi()) }
+            is SettingsUiEvent.ImportTextChanged -> _state.update { it.copy(importExport = it.importExport.copy(json = ev.value, error = null)) }
             SettingsUiEvent.ImportCommit -> importCommit()
 
-            SettingsUiEvent.EditorClose -> _state.value = _state.value.copy(editor = null, validationErrors = emptyList(), lastError = null)
-            SettingsUiEvent.EditorSave -> saveEditor()
+            SettingsUiEvent.ExportAll -> exportAll()
+            is SettingsUiEvent.ExportProfile -> exportProfile(ev.id)
+            SettingsUiEvent.CloseExport -> _state.update { it.copy(showExportDialog = false, importExport = ImportExportUi()) }
 
-            is SettingsUiEvent.EditorName -> updateDraft { it.copy(name = ev.value) }
-            is SettingsUiEvent.EditorDescription -> updateDraft { it.copy(description = ev.value) }
-            is SettingsUiEvent.EditorTags -> updateDraft { it.copy(tagsCsv = ev.value) }
-            is SettingsUiEvent.EditorProtocol -> updateDraft { it.copy(protocolType = ProtocolType.valueOf(ev.value)) }
-            is SettingsUiEvent.EditorEndpoint -> updateDraft { it.copy(endpoint = ev.value) }
-            is SettingsUiEvent.EditorHeaders -> updateDraft { it.copy(headersText = ev.value) }
-            is SettingsUiEvent.EditorWsPing -> updateDraft { it.copy(wsPingIntervalMs = ev.value.toLongOrNull() ?: it.wsPingIntervalMs) }
+            is SettingsUiEvent.EditorChanged -> _state.update { it.copy(editorProfile = ev.profile, validationErrors = emptyList()) }
+            SettingsUiEvent.EditorSave -> saveEditor()
+            SettingsUiEvent.EditorClose -> _state.update { it.copy(editorProfile = null, editorIsNew = false, validationErrors = emptyList()) }
         }
     }
 
-    // -------------------------
-    // Actions
-    // -------------------------
-
-    private fun createNew() = viewModelScope.launch {
-        // default برای شروع سریع
+    private fun openNew() = viewModelScope.launch {
         val p = profileManager.createDefaultWsOkHttpProfile(
-            name = "WS Profile ${UUID.randomUUID().toString().take(4)}",
+            name = "Profile ${UUID.randomUUID().toString().take(4)}",
             endpoint = "wss://echo.websocket.events"
         )
-        profileManager.setActive(p)
-        _effects.tryEmit(SettingsUiEffect.Toast("Created & applied: ${p.name}"))
+        // فقط برای draft در UI، ذخیره واقعی با Save انجام می‌شود:
+        _state.update { it.copy(editorProfile = p.copy(id = ProfileId(UUID.randomUUID().toString())), editorIsNew = true) }
     }
 
     private fun openEditor(id: String) = viewModelScope.launch {
         val p = profileManager.getProfile(ProfileId(id)) ?: return@launch
-        _state.value = _state.value.copy(
-            editor = p.toDraft(),
-            validationErrors = emptyList(),
-            lastError = null
-        )
+        _state.update { it.copy(editorProfile = p, editorIsNew = false, validationErrors = emptyList()) }
     }
 
-    private fun duplicate(id: String) = viewModelScope.launch {
-        val p = profileManager.getProfile(ProfileId(id)) ?: return@launch
-        val copy = p.copy(
-            id = ProfileId(UUID.randomUUID().toString()),
-            name = p.name + " (copy)"
-        )
-        profileManager.upsert(copy)
-        _effects.tryEmit(SettingsUiEffect.Toast("Duplicated"))
-    }
+    private fun saveEditor() = viewModelScope.launch {
+        val p = _state.value.editorProfile ?: return@launch
 
-    private fun delete(id: String) = viewModelScope.launch {
-        runCatching { profileManager.delete(ProfileId(id)) }
-            .onSuccess { _effects.tryEmit(SettingsUiEffect.Toast("Deleted")) }
-            .onFailure { ex -> _effects.tryEmit(SettingsUiEffect.Toast("Delete failed: ${ex.message}")) }
+        val validation = profileManager.validate(p)
+        if (!validation.isValid) {
+            _state.update { it.copy(validationErrors = validation.errors.map { e -> e.message }) }
+            _effects.tryEmit(SettingsUiEffect.Toast("Validation failed"))
+            return@launch
+        }
+
+        runCatching { profileManager.upsert(p) }
+            .onSuccess {
+                _state.update { it.copy(editorProfile = null, editorIsNew = false, validationErrors = emptyList()) }
+                _effects.tryEmit(SettingsUiEffect.Toast("Saved"))
+            }
+            .onFailure { ex ->
+                _effects.tryEmit(SettingsUiEffect.Toast("Save failed: ${ex.message}"))
+            }
     }
 
     private fun apply(id: String) = viewModelScope.launch {
@@ -140,127 +128,62 @@ class SettingsViewModel(
         _effects.tryEmit(SettingsUiEffect.Toast("Applied: ${p.name}"))
     }
 
-    private fun export(id: String) = viewModelScope.launch {
+    private fun duplicate(id: String) = viewModelScope.launch {
+        val p = profileManager.getProfile(ProfileId(id)) ?: return@launch
+        val copy = p.copy(id = ProfileId(UUID.randomUUID().toString()), name = p.name + " (copy)")
+        profileManager.upsert(copy)
+        _effects.tryEmit(SettingsUiEffect.Toast("Duplicated"))
+    }
+
+    private fun confirmDelete() = viewModelScope.launch {
+        val id = _state.value.pendingDeleteId ?: return@launch
+        runCatching { profileManager.delete(ProfileId(id)) }
+            .onSuccess {
+                _state.update { it.copy(pendingDeleteId = null) }
+                _effects.tryEmit(SettingsUiEffect.Toast("Deleted"))
+            }
+            .onFailure { ex ->
+                _effects.tryEmit(SettingsUiEffect.Toast("Delete failed: ${ex.message}"))
+            }
+    }
+
+    private fun exportProfile(id: String) = viewModelScope.launch {
         val p = profileManager.getProfile(ProfileId(id)) ?: return@launch
         val json = codec.encode(p)
-        _state.value = _state.value.copy(showExportDialog = true, exportText = json)
+        _state.update { it.copy(showExportDialog = true, importExport = ImportExportUi(json = json)) }
+    }
+
+    private fun exportAll() = viewModelScope.launch {
+        val profiles = profileManager.observeProfiles().first()
+        val arr = JSONArray()
+        profiles.forEach { arr.put(codec.encode(it)) }
+        _state.update { it.copy(showExportDialog = true, importExport = ImportExportUi(json = arr.toString())) }
     }
 
     private fun importCommit() = viewModelScope.launch {
-        val text = _state.value.importText.trim()
-        if (text.isEmpty()) return@launch
+        val raw = _state.value.importExport.json.trim()
+        if (raw.isBlank()) return@launch
 
         runCatching {
-            val profile = codec.decode(text)
-            // اگر id تکراری بود، بهتره id جدید بدیم:
-            val safe = profile.copy(id = ProfileId(UUID.randomUUID().toString()))
-            profileManager.upsert(safe)
-            safe
-        }.onSuccess { p ->
-            _state.value = _state.value.copy(showImportDialog = false, importText = "")
-            _effects.tryEmit(SettingsUiEffect.Toast("Imported: ${p.name}"))
+            val imported = mutableListOf<Profile>()
+            if (raw.startsWith("[")) {
+                val arr = JSONArray(raw)
+                for (i in 0 until arr.length()) {
+                    val p = codec.decode(arr.getString(i)).copy(id = ProfileId(UUID.randomUUID().toString()))
+                    profileManager.upsert(p)
+                    imported += p
+                }
+            } else {
+                val p = codec.decode(raw).copy(id = ProfileId(UUID.randomUUID().toString()))
+                profileManager.upsert(p)
+                imported += p
+            }
+            imported
+        }.onSuccess { list ->
+            _state.update { it.copy(showImportDialog = false, importExport = ImportExportUi()) }
+            _effects.tryEmit(SettingsUiEffect.Toast("Imported: ${list.size} profile(s)"))
         }.onFailure { ex ->
-            _effects.tryEmit(SettingsUiEffect.Toast("Import failed: ${ex.message}"))
+            _state.update { it.copy(importExport = it.importExport.copy(error = ex.message ?: "Import failed")) }
         }
     }
-
-    private fun saveEditor() = viewModelScope.launch {
-        val draft = _state.value.editor ?: return@launch
-
-        val profile = draft.toProfile()
-        val validation = profileManager.validate(profile)
-
-        if (!validation.isValid) {
-            _state.value = _state.value.copy(
-                validationErrors = validation.errors.map { it.message },
-                lastError = "Invalid profile"
-            )
-            _effects.tryEmit(SettingsUiEffect.Toast("Validation failed"))
-            return@launch
-        }
-
-        runCatching { profileManager.upsert(profile) }
-            .onSuccess {
-                _state.value = _state.value.copy(editor = null, validationErrors = emptyList(), lastError = null)
-                _effects.tryEmit(SettingsUiEffect.Toast("Saved"))
-            }
-            .onFailure { ex ->
-                _state.value = _state.value.copy(lastError = ex.message ?: "save failed")
-                _effects.tryEmit(SettingsUiEffect.Toast("Save failed: ${ex.message}"))
-            }
-    }
-
-    private fun updateDraft(block: (EditorDraft) -> EditorDraft) {
-        val d = _state.value.editor ?: return
-        _state.value = _state.value.copy(editor = block(d), validationErrors = emptyList())
-    }
-}
-
-// -------------------------
-// Draft ↔ Domain mapping
-// -------------------------
-
-private fun Profile.toDraft(): EditorDraft {
-    val headersText = transportConfig.headers.entries.joinToString("\n") { "${it.key}:${it.value}" }
-
-    return EditorDraft(
-        id = id.value,
-        name = name,
-        description = description,
-        tagsCsv = tags.joinToString(","),
-        protocolType = protocolType,
-        endpoint = transportConfig.endpoint,
-        headersText = headersText,
-        wsPingIntervalMs = (transportConfig as? WsOkHttpConfig)?.pingIntervalMs ?: 15_000
-    )
-}
-
-private fun EditorDraft.toProfile(): Profile {
-    val headers = headersText
-        .lines()
-        .mapNotNull { line ->
-            val trimmed = line.trim()
-            if (trimmed.isBlank()) return@mapNotNull null
-            val idx = trimmed.indexOf(':')
-            if (idx <= 0) return@mapNotNull null
-            val k = trimmed.substring(0, idx).trim()
-            val v = trimmed.substring(idx + 1).trim()
-            if (k.isBlank()) null else k to v
-        }.toMap()
-
-    val tags = tagsCsv
-        .split(',')
-        .map { it.trim() }
-        .filter { it.isNotBlank() }
-
-    val transport: TransportConfig = when (protocolType) {
-        ProtocolType.WS_OKHTTP -> WsOkHttpConfig(
-            endpoint = endpoint,
-            pingIntervalMs = wsPingIntervalMs,
-            headers = headers
-        )
-        // فعلاً editor فقط ws-okhttp رو کامل پوشش می‌ده؛
-        // بقیه رو با endpoint/headers minimal می‌سازیم تا بعداً editor اختصاصی اضافه کنیم.
-        ProtocolType.WS_KTOR -> WsKtorConfig(endpoint = endpoint, headers = headers)
-        ProtocolType.MQTT -> MqttConfig(endpoint = endpoint, clientId = "client", topic = "topic", headers = headers)
-        ProtocolType.SOCKETIO -> SocketIoConfig(endpoint = endpoint, headers = headers)
-        ProtocolType.SIGNALR -> SignalRConfig(endpoint = endpoint, headers = headers)
-    }
-
-    return Profile(
-        id = profileId(),
-        name = name,
-        description = description,
-        tags = tags,
-        protocolType = protocolType,
-        transportConfig = transport,
-        // مقادیر پیش‌فرض
-        deliverySemantics = com.msa.chatlab.core.domain.model.DeliverySemantics.AtLeastOnce,
-        ackStrategy = com.msa.chatlab.core.domain.model.AckStrategy.TransportLevel,
-        outboxPolicy = OutboxPolicy(),
-        retryPolicy = RetryPolicy(),
-        reconnectPolicy = ReconnectPolicy(),
-        payloadProfile = PayloadProfile(),
-        chaosProfile = ChaosProfile()
-    )
 }

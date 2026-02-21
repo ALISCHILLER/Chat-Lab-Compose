@@ -1,15 +1,12 @@
 package com.msa.chatlab.core.data.repository
 
-import com.msa.chatlab.core.domain.model.ChatMessage
-import com.msa.chatlab.core.domain.model.ConversationRow
-import com.msa.chatlab.core.domain.model.MessageDirection
-import com.msa.chatlab.core.domain.model.MessageEntity
-import com.msa.chatlab.core.domain.model.MessageStatus
+import com.msa.chatlab.core.domain.model.*
 import com.msa.chatlab.core.domain.repository.MessageRepository
 import com.msa.chatlab.core.domain.value.MessageId
 import com.msa.chatlab.core.domain.value.ProfileId
 import com.msa.chatlab.core.domain.value.TimestampMillis
 import com.msa.chatlab.core.storage.dao.MessageDao
+import com.msa.chatlab.core.storage.entity.MessageEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -17,16 +14,10 @@ class RoomMessageRepository(
     private val dao: MessageDao
 ) : MessageRepository {
 
-    override fun observeMessages(profileId: ProfileId): Flow<List<ChatMessage>> {
-        return dao.observeByProfile(profileId.value).map { list -> list.map { it.toDomain() } }
-    }
+    override fun observeMessages(profileId: ProfileId): Flow<List<ChatMessage>> =
+        dao.observeByProfile(profileId.value).map { list -> list.map { it.toDomain() } }
 
-    override suspend fun insertOutgoing(
-        profileId: ProfileId,
-        messageId: MessageId,
-        text: String,
-        destination: String?
-    ): ChatMessage {
+    override suspend fun insertOutgoing(profileId: ProfileId, messageId: MessageId, text: String, destination: String?): ChatMessage {
         val msg = ChatMessage(
             id = messageId,
             profileId = profileId,
@@ -40,12 +31,7 @@ class RoomMessageRepository(
         return msg
     }
 
-    override suspend fun insertIncoming(
-        profileId: ProfileId,
-        messageId: MessageId,
-        text: String,
-        source: String?
-    ): ChatMessage {
+    override suspend fun insertIncoming(profileId: ProfileId, messageId: MessageId, text: String, source: String?): ChatMessage {
         val msg = ChatMessage(
             id = messageId,
             profileId = profileId,
@@ -60,34 +46,21 @@ class RoomMessageRepository(
     }
 
     override suspend fun updateStatus(messageId: MessageId, status: MessageStatus, errorMessage: String?) {
-        dao.updateStatusByMessageId(
-            messageId = messageId.value,
-            status = status.name,
-            lastError = errorMessage,
-            updatedAt = System.currentTimeMillis()
-        )
+        dao.updateStatusByMessageId(messageId.value, status.name, errorMessage, System.currentTimeMillis())
     }
 
-    override suspend fun deleteMessage(id: MessageId) {
-        dao.deleteByMessageId(id.value)
-    }
+    override suspend fun deleteMessage(id: MessageId) = dao.deleteByMessageId(id.value)
+    override suspend fun clearAllFor(profileId: ProfileId) = dao.deleteByProfile(profileId.value)
 
-    override suspend fun clearAllFor(profileId: ProfileId) {
-        dao.deleteByProfile(profileId.value)
-    }
+    override fun observeConversations(profileId: ProfileId): Flow<List<ConversationRow>> =
+        dao.observeConversations(profileId.value)
 
-    override fun observeConversations(profileId: ProfileId): Flow<List<ConversationRow>> {
-        return dao.observeConversations(profileId.value)
-    }
-
-    override fun observeConversation(profileId: ProfileId, destination: String): Flow<List<ChatMessage>> {
-        return dao.observeConversation(profileId.value, destination).map { list -> list.map { it.toDomain() } }
-    }
+    override fun observeConversation(profileId: ProfileId, destination: String): Flow<List<ChatMessage>> =
+        dao.observeConversation(profileId.value, destination).map { list -> list.map { it.toDomain() } }
 }
 
 private fun MessageEntity.toDomain(): ChatMessage {
     val dir = runCatching { MessageDirection.valueOf(direction) }.getOrDefault(MessageDirection.OUT)
-
     val st = when (status.uppercase()) {
         "DRAFT" -> MessageStatus.Draft
         "SENDING", "QUEUED" -> MessageStatus.Sending
@@ -109,8 +82,8 @@ private fun MessageEntity.toDomain(): ChatMessage {
     )
 }
 
-private fun ChatMessage.toEntity(): MessageEntity {
-    return MessageEntity(
+private fun ChatMessage.toEntity(): MessageEntity =
+    MessageEntity(
         profileId = profileId.value,
         messageId = id.value,
         direction = direction.name,
@@ -122,4 +95,3 @@ private fun ChatMessage.toEntity(): MessageEntity {
         attempt = 0,
         queued = false
     )
-}

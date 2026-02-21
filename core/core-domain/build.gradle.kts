@@ -17,5 +17,5 @@ android {
 
 dependencies {
     implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.room.runtime)
+    // ❌ حذف: implementation(libs.room.runtime)
 }

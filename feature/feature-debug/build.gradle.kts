@@ -6,32 +6,31 @@ plugins {
 android {
     namespace = "com.msa.chatlab.feature.debug"
     compileSdk = 34
-
-    defaultConfig {
-        minSdk = 26
-    }
-
-    buildFeatures {
-        compose = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
-    }
-
+    defaultConfig { minSdk = 26 }
+    buildFeatures { compose = true }
+    composeOptions { kotlinCompilerExtensionVersion = "1.5.14" }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+    kotlinOptions { jvmTarget = "17" }
 }
 
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
 
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+
+    implementation(libs.koin.android)
+    implementation(libs.koin.compose)
+
+    implementation(project(":core:core-common"))
+    implementation(project(":core:core-data"))
+    implementation(project(":core:core-domain"))
+    implementation(project(":core:core-observability"))
+    implementation(project(":core:core-storage"))
 }

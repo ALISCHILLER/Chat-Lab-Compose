@@ -5,7 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.msa.chatlab.core.domain.model.ConversationRow
-import com.msa.chatlab.core.domain.model.MessageEntity
+import com.msa.chatlab.core.storage.entity.MessageEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -45,21 +45,21 @@ interface MessageDao {
 
     @Query(
         """
-    SELECT 
-      m.destination AS destination,
-      MAX(m.created_at) AS lastAt,
-      (SELECT text FROM messages m2 
-         WHERE m2.profile_id = m.profile_id AND m2.destination = m.destination
-         ORDER BY m2.created_at DESC LIMIT 1) AS lastText,
-      (SELECT status FROM messages m2 
-         WHERE m2.profile_id = m.profile_id AND m2.destination = m.destination
-         ORDER BY m2.created_at DESC LIMIT 1) AS lastStatus,
-      COUNT(*) AS total
-    FROM messages m
-    WHERE m.profile_id = :profileId
-    GROUP BY m.destination
-    ORDER BY lastAt DESC
-    """
+        SELECT 
+          m.destination AS destination,
+          MAX(m.created_at) AS lastAt,
+          (SELECT text FROM messages m2 
+             WHERE m2.profile_id = m.profile_id AND m2.destination = m.destination
+             ORDER BY m2.created_at DESC LIMIT 1) AS lastText,
+          (SELECT status FROM messages m2 
+             WHERE m2.profile_id = m.profile_id AND m2.destination = m.destination
+             ORDER BY m2.created_at DESC LIMIT 1) AS lastStatus,
+          COUNT(*) AS total
+        FROM messages m
+        WHERE m.profile_id = :profileId
+        GROUP BY m.destination
+        ORDER BY lastAt DESC
+        """
     )
     fun observeConversations(profileId: String): Flow<List<ConversationRow>>
 
@@ -69,7 +69,8 @@ interface MessageDao {
             last_error = :lastError,
             updated_at = :updatedAt
         WHERE message_id = :messageId
-    """)
+    """
+    )
     suspend fun updateStatusByMessageId(messageId: String, status: String, lastError: String?, updatedAt: Long)
 
     @Query("DELETE FROM messages WHERE message_id = :messageId")

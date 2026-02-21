@@ -4,11 +4,8 @@ import com.msa.chatlab.core.data.active.ActiveProfileStore
 import com.msa.chatlab.core.domain.model.MessageStatus
 import com.msa.chatlab.core.protocol.api.event.TransportEvent
 import com.msa.chatlab.core.storage.dao.MessageDao
-import com.msa.chatlab.core.domain.model.MessageEntity
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
+import com.msa.chatlab.core.storage.entity.MessageEntity
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -27,20 +24,18 @@ class TransportMessageBinder(
                 when (ev) {
                     is TransportEvent.MessageReceived -> {
                         val profile = activeProfileStore.getActiveNow() ?: return@collectLatest
-                        val env = ev.payload.envelope ?: return@collectLatest
+                        val env = ev.payload.envelope
 
-                        val text = if (env.contentType.startsWith("text/")) {
-                            env.body.decodeToString()
-                        } else {
-                            "<${env.contentType} • ${env.body.size} bytes>"
-                        }
+                        val text = if (env.contentType.startsWith("text/")) env.body.decodeToString()
+                        else "<${env.contentType} • ${env.body.size} bytes>"
 
-                        // ✅ برای WS echo: source="ws" هست؛ ما می‌خوای داخل همون thread "default" بیاد
                         val destinationKey = when (ev.payload.source) {
-                            null -> "default"
-                            "ws" -> "default"
+                            null, "ws" -> "default"
                             else -> ev.payload.source
                         }
+
+                        // Explicit type declaration to help the compiler
+                        val eventSource: String? = ev.payload.source
 
                         messageDao.upsert(
                             MessageEntity(
@@ -48,9 +43,9 @@ class TransportMessageBinder(
                                 messageId = env.messageId.value,
                                 direction = "IN",
                                 destination = destinationKey,
-                                source = ev.payload.source,
+                                source = eventSource,
                                 contentType = env.contentType,
-                                headersJson = "{}", // فاز ۱: بعداً JSON واقعی
+                                headersJson = "{}",
                                 text = text,
                                 createdAt = env.createdAt.value,
                                 status = MessageStatus.Delivered.name,
@@ -64,7 +59,7 @@ class TransportMessageBinder(
 
                     is TransportEvent.MessageSent -> {
                         messageDao.updateStatusByMessageId(
-                            messageId = ev.messageId!!,
+                            messageId = ev.messageId,
                             status = MessageStatus.Sent.name,
                             lastError = null,
                             updatedAt = System.currentTimeMillis()

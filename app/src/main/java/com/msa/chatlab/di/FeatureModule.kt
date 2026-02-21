@@ -2,7 +2,6 @@ package com.msa.chatlab.di
 
 import com.msa.chatlab.feature.chat.vm.ChatListViewModel
 import com.msa.chatlab.feature.chat.vm.ChatThreadViewModel
-import com.msa.chatlab.feature.chat.vm.ChatViewModel
 import com.msa.chatlab.feature.chat.vm.OutboxViewModel
 import com.msa.chatlab.feature.connect.vm.ConnectViewModel
 import com.msa.chatlab.feature.lab.vm.LabViewModel
@@ -15,7 +14,6 @@ val FeatureModule = module {
     viewModel { ChatThreadViewModel(get(), get(), get()) }
     viewModel { OutboxViewModel(get(), get()) }
     viewModel { ConnectViewModel(get(), get(), get()) }
-    viewModel { SettingsViewModel(get(), get(), get()) }
+    viewModel { SettingsViewModel(get(), get(), get(), get()) } // ✅ +ProtocolRegistry
     viewModel { LabViewModel(get(), get()) }
-    viewModel { ChatViewModel(get(), get(), get(), get(), get()) }
 }

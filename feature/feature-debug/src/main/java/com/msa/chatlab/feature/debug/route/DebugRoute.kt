@@ -1,22 +1,22 @@
 package com.msa.chatlab.feature.debug.route
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.msa.chatlab.feature.debug.screen.DebugScreen
+import com.msa.chatlab.feature.debug.vm.DebugViewModel
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun DebugRoute(onBack: () -> Unit) {
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Debug", style = MaterialTheme.typography.headlineSmall)
-        Text("Placeholder — Section 1", modifier = Modifier.padding(top = 8.dp))
-        Button(onClick = onBack, modifier = Modifier.padding(top = 16.dp)) {
-            Text("Back")
-        }
-    }
+fun DebugRoute(padding: PaddingValues) {
+    val vm: DebugViewModel = koinViewModel()
+    val state by vm.state.collectAsState()
+
+    DebugScreen(
+        padding = padding,
+        state = state,
+        onToggleOffline = vm::setSimOffline,
+        onClearLogs = vm::clearLogs
+    )
 }

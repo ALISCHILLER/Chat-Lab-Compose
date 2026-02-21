@@ -1,5 +1,6 @@
 package com.msa.chatlab.protocol.websocket.okhttp.mapper
 
+import com.msa.chatlab.core.data.codec.StandardEnvelopeCodec
 import com.msa.chatlab.core.domain.value.MessageId
 import com.msa.chatlab.core.domain.value.TimestampMillis
 import com.msa.chatlab.core.protocol.api.payload.Envelope
@@ -9,7 +10,8 @@ import java.util.UUID
 object OkHttpEventMapper {
 
     fun incomingText(text: String, now: Long): IncomingPayload {
-        val env = Envelope(
+        val decoded = StandardEnvelopeCodec.decodeOrNull(text)
+        val env = decoded ?: Envelope(
             messageId = MessageId(UUID.randomUUID().toString()),
             createdAt = TimestampMillis(now),
             contentType = "text/plain",
@@ -20,7 +22,10 @@ object OkHttpEventMapper {
     }
 
     fun incomingBinary(bytes: ByteArray, now: Long): IncomingPayload {
-        val env = Envelope(
+        val asText = runCatching { bytes.decodeToString() }.getOrNull()
+        val decoded = asText?.let { StandardEnvelopeCodec.decodeOrNull(it) }
+
+        val env = decoded ?: Envelope(
             messageId = MessageId(UUID.randomUUID().toString()),
             createdAt = TimestampMillis(now),
             contentType = "application/octet-stream",

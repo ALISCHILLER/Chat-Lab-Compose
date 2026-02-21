@@ -1,14 +1,13 @@
 package com.msa.chatlab.core.domain.model
 
-import com.msa.chatlab.core.domain.value.MessageId
 import com.msa.chatlab.core.domain.value.RunId
 
 data class Scenario(
     val name: String,
     val durationSec: Int,
-    val rps: Int, // requests per second
+    val rps: Int,
     val payloadBytes: Int,
-    val pattern: String // e.g., "burst", "steady"
+    val pattern: String
 )
 
 data class RunSession(
@@ -17,13 +16,19 @@ data class RunSession(
     val seed: Long,
     val startedAt: Long,
     val networkLabel: String,
-    val enqueued: List<MessageId> = emptyList()
 )
 
 data class RunResult(
     val session: RunSession,
     val endedAt: Long,
-    val sent: List<MessageId> = emptyList(),
-    val failed: List<Pair<MessageId, String>> = emptyList(),
-    val received: List<MessageId> = emptyList()
+    val enqueuedCount: Long,
+    val sentCount: Long,
+    val receivedCount: Long,
+    val failedCount: Long,
+    val successRatePercent: Double,
+    val throughputMsgPerSec: Double,
+    val latencyAvgMs: Long?,
+    val latencyP50Ms: Long?,
+    val latencyP95Ms: Long?,
+    val latencyP99Ms: Long?,
 )

@@ -16,7 +16,6 @@ android {
 }
 
 dependencies {
-    api(project(":core:core-domain"))
     api(project(":core:core-protocol-api"))
     api(project(":core:core-storage"))
 

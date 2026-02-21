@@ -1,5 +1,6 @@
 package com.msa.chatlab.feature.settings.state
 
+import com.msa.chatlab.core.domain.model.Profile
 import com.msa.chatlab.core.domain.model.ProtocolType
 
 data class SettingsUiState(
@@ -7,14 +8,16 @@ data class SettingsUiState(
     val searchQuery: String = "",
     val cards: List<UiProfileCard> = emptyList(),
 
-    val editor: ProfileEditorUi? = null,
-
     val supportedProtocols: List<ProtocolType> = emptyList(),
+
+    val editorProfile: Profile? = null,
+    val editorIsNew: Boolean = false,
+
+    val validationErrors: List<String> = emptyList(),
 
     val showImportDialog: Boolean = false,
     val showExportDialog: Boolean = false,
     val importExport: ImportExportUi = ImportExportUi(),
 
-    val validationErrors: List<String> = emptyList(),
-    val lastError: String? = null
+    val pendingDeleteId: String? = null
 )

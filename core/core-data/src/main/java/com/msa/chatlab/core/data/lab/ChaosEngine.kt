@@ -1,18 +1,17 @@
 package com.msa.chatlab.core.data.lab
 
-import com.msa.chatlab.core.domain.model.Scenario
 import kotlin.random.Random
 
 class ChaosEngine(seed: Long) {
-    private val r = Random(seed)
+    private val random = Random(seed)
 
-    fun shouldDrop(dropRatePercent: Double): Boolean =
-        dropRatePercent > 0 && (r.nextDouble() * 100.0) < dropRatePercent
-
-    fun extraDelayMs(minMs: Long, maxMs: Long): Long {
-        if (maxMs <= 0 || maxMs <= minMs) return 0
-        return minMs + (r.nextDouble() * (maxMs - minMs)).toLong()
+    fun shouldDrop(dropRatePercent: Double): Boolean {
+        if (dropRatePercent <= 0) return false
+        return random.nextDouble(0.0, 100.0) < dropRatePercent
     }
 
-    fun isInDisconnectWindow(elapsedMs: Long, scenario: Scenario): Boolean = false
+    fun extraDelayMs(min: Long, max: Long): Long {
+        if (max <= min) return 0L
+        return random.nextLong(min, max)
+    }
 }
