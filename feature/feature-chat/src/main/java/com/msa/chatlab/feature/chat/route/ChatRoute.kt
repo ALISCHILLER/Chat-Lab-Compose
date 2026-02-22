@@ -13,6 +13,7 @@ import org.koin.androidx.compose.koinViewModel
 fun ChatRoute(padding: PaddingValues) {
     val chatVm: ChatViewModel = koinViewModel()
     val outboxVm: OutboxViewModel = koinViewModel()
+
     val chatState by chatVm.uiState.collectAsStateWithLifecycle()
     val outboxState by outboxVm.uiState.collectAsStateWithLifecycle()
 

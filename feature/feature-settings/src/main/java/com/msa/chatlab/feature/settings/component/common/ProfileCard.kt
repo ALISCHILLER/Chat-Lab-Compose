@@ -23,7 +23,10 @@ fun ProfileCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = if (profile.isActive) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+            containerColor = if (profile.isActive)
+                MaterialTheme.colorScheme.primaryContainer
+            else
+                MaterialTheme.colorScheme.surface
         )
     ) {
         Row(
@@ -32,15 +35,17 @@ fun ProfileCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
+
+            Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = profile.title,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = if (profile.isActive) FontWeight.Bold else FontWeight.Normal,
-                        color = if (profile.isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        color = if (profile.isActive)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurface
                     )
                     if (profile.isActive) {
                         Icon(
@@ -67,7 +72,7 @@ fun ProfileCard(
                 IconButton(onClick = { onEvent(SettingsUiEvent.Edit(profile.id)) }) {
                     Icon(Icons.Default.Edit, contentDescription = "Edit")
                 }
-                IconButton(onClick = { onEvent(SettingsUiEvent.Delete(profile.id)) }) {
+                IconButton(onClick = { onEvent(SettingsUiEvent.RequestDelete(profile.id)) }) {
                     Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
                 }
                 Button(

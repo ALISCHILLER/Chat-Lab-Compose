@@ -2,6 +2,7 @@ package com.msa.chatlab
 
 import android.app.Application
 import android.os.StrictMode
+import com.msa.chatlab.BuildConfig
 import com.msa.chatlab.core.data.manager.ConnectionLogBinder
 import com.msa.chatlab.core.data.manager.TransportMessageBinder
 import com.msa.chatlab.core.data.outbox.OutboxProcessor

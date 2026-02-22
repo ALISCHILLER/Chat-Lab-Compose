@@ -9,7 +9,8 @@ val settingsModule = module {
         SettingsViewModel(
             profileManager = get(),
             activeStore = get(),
-            codec = get()
+            codec = get(),
+            registry = get()
         )
     }
 }

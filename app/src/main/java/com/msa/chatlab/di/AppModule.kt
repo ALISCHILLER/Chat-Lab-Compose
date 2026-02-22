@@ -1,22 +1,16 @@
 package com.msa.chatlab.di
 
-import com.msa.chatlab.protocol.mqtt.di.MqttProtocolModule
-import com.msa.chatlab.protocol.signalr.di.SignalRProtocolModule
-import com.msa.chatlab.protocol.socketio.di.SocketIoProtocolModule
 import com.msa.chatlab.protocol.websocket.okhttp.di.WsOkHttpProtocolModule
-import com.msa.chatlab.protocol.ws.ktor.di.WsKtorProtocolModule
 import org.koin.dsl.module
 
+// Includes all the real, existing Koin modules for the app.
 val AppModule = module {
     includes(
         CoreModule,
         DataModule,
         FeatureModule,
 
-        WsOkHttpProtocolModule,
-        WsKtorProtocolModule,
-        MqttProtocolModule,
-        SocketIoProtocolModule,
-        SignalRProtocolModule,
+        // Only WsOkHttp provides a Koin module. The others are not implemented.
+        WsOkHttpProtocolModule
     )
 }

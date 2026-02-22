@@ -7,6 +7,8 @@ import com.msa.chatlab.core.data.active.ActiveProfileStore
 import com.msa.chatlab.core.data.manager.MessageSender
 import com.msa.chatlab.core.data.outbox.OutboxQueue
 import com.msa.chatlab.core.domain.repository.MessageRepository
+import com.msa.chatlab.feature.chat.model.toChatMessageUi
+import com.msa.chatlab.feature.chat.state.ChatUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -16,19 +18,12 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-data class ChatUiState(
-    val profileName: String? = null,
-    val messages: List<MessageUiModel> = emptyList(),
-    val outboxCount: Int = 0,
-    val error: String? = null
-)
-
 class ChatViewModel(
     private val activeProfileStore: ActiveProfileStore,
     private val messageRepository: MessageRepository,
     private val outboxQueue: OutboxQueue,
     private val sender: MessageSender,
-    private val uiMessenger: UiMessenger,
+    @Suppress("unused") private val uiMessenger: UiMessenger,
 ) : ViewModel() {
 
     private val errorFlow = MutableStateFlow<String?>(null)
@@ -38,14 +33,23 @@ class ChatViewModel(
         .flatMapLatest { activeProfile ->
             combine(
                 messageRepository.observeMessages(activeProfile.id),
-                outboxQueue.observeCount(activeProfile.id.value, com.msa.chatlab.core.storage.entity.OutboxStatus.PENDING),
-                outboxQueue.observeCount(activeProfile.id.value, com.msa.chatlab.core.storage.entity.OutboxStatus.IN_FLIGHT),
-                outboxQueue.observeCount(activeProfile.id.value, com.msa.chatlab.core.storage.entity.OutboxStatus.FAILED),
+                outboxQueue.observeCount(
+                    activeProfile.id.value,
+                    com.msa.chatlab.core.storage.entity.OutboxStatus.PENDING
+                ),
+                outboxQueue.observeCount(
+                    activeProfile.id.value,
+                    com.msa.chatlab.core.storage.entity.OutboxStatus.IN_FLIGHT
+                ),
+                outboxQueue.observeCount(
+                    activeProfile.id.value,
+                    com.msa.chatlab.core.storage.entity.OutboxStatus.FAILED
+                ),
                 errorFlow
             ) { messages, pendingCount, inflightCount, failedCount, error ->
                 ChatUiState(
                     profileName = activeProfile.name,
-                    messages = messages.map { it.toUiModel() },
+                    messages = messages.map { it.toChatMessageUi() },
                     outboxCount = pendingCount + inflightCount + failedCount,
                     error = error
                 )
@@ -61,5 +65,9 @@ class ChatViewModel(
             runCatching { sender.sendText(trimmed, destination) }
                 .onFailure { errorFlow.value = it.message ?: "Send failed" }
         }
+    }
+
+    fun clearError() {
+        errorFlow.value = null
     }
 }
