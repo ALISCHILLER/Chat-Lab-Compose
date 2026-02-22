@@ -6,7 +6,13 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import com.msa.chatlab.core.common.ui.UiMessenger
@@ -40,7 +46,7 @@ fun LabRoute(padding: PaddingValues) {
         }
     }
 
-    LabScreen(state = state, onEvent = vm::onEvent, padding = padding)
+    LabScreen(padding = padding, state = state, onEvent = vm::onEvent)
 
     export?.let { files ->
         val combined = files.entries.joinToString("\n\n") { (name, content) ->

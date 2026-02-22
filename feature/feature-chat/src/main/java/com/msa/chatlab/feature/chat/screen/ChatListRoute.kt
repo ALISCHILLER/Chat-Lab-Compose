@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.msa.chatlab.core.common.ui.components.EmptyState
 import com.msa.chatlab.core.common.ui.components.SectionCard
-import com.msa.chatlab.core.designsystem.theme.LocalSpacing
+import com.msa.chatlab.core.common.theme.LocalSpacing
 import com.msa.chatlab.core.domain.model.ConversationRow
 import com.msa.chatlab.feature.chat.vm.ChatListViewModel
 import org.koin.androidx.compose.koinViewModel
@@ -31,11 +31,18 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun ChatListRoute(
     padding: PaddingValues,
-    onOpen: (String) -> Unit
+    onOpen: (String) -> Unit,
 ) {
     val vm: ChatListViewModel = koinViewModel()
     val st by vm.state.collectAsStateWithLifecycle()
-    ChatListScreen(padding, st.query, st.profileName, st.items, vm::onQuery, onOpen)
+    ChatListScreen(
+        padding = padding,
+        query = st.query,
+        profileName = st.profileName,
+        items = st.items,
+        onQuery = vm::onQuery,
+        onOpen = onOpen
+    )
 }
 
 @Composable
@@ -45,11 +52,16 @@ private fun ChatListScreen(
     profileName: String,
     items: List<ConversationRow>,
     onQuery: (String) -> Unit,
-    onOpen: (String) -> Unit
+    onOpen: (String) -> Unit,
 ) {
     val s = LocalSpacing.current
 
-    Column(Modifier.fillMaxSize().padding(padding), verticalArrangement = Arrangement.spacedBy(s.lg)) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(padding),
+        verticalArrangement = Arrangement.spacedBy(s.lg)
+    ) {
         SectionCard(title = "Chats") {
             Text("Profile: $profileName", color = MaterialTheme.colorScheme.onSurfaceVariant)
             OutlinedTextField(
@@ -71,7 +83,9 @@ private fun ChatListScreen(
             LazyColumn(verticalArrangement = Arrangement.spacedBy(s.sm)) {
                 items(items, key = { it.destination }) { row ->
                     ElevatedCard(
-                        modifier = Modifier.fillMaxWidth().clickable { onOpen(row.destination) }
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onOpen(row.destination) }
                     ) {
                         Column(Modifier.padding(s.lg), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(row.destination, style = MaterialTheme.typography.titleMedium)
@@ -81,7 +95,8 @@ private fun ChatListScreen(
                                 overflow = TextOverflow.Ellipsis,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Text("Total: ${row.total} • Last: ${row.lastStatus ?: "-"}",
+                            Text(
+                                "Total: ${row.total} • Last: ${row.lastStatus ?: "-"}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

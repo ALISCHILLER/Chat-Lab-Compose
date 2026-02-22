@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.msa.chatlab.core.designsystem.theme.LocalSpacing
+import com.msa.chatlab.core.common.theme.LocalSpacing
 
 @Composable
 fun SectionCard(

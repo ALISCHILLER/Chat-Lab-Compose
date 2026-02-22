@@ -84,4 +84,10 @@ object Migrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS index_outbox_profile_status_created ON outbox(profile_id, status, created_at)")
         }
     }
+    val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS acks (id TEXT NOT NULL, timestamp INTEGER NOT NULL, PRIMARY KEY(id))")
+            db.execSQL("CREATE TABLE IF NOT EXISTS dedup (id TEXT NOT NULL, timestamp INTEGER NOT NULL, PRIMARY KEY(id))")
+        }
+    }
 }

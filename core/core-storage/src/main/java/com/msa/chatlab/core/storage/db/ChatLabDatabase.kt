@@ -15,9 +15,11 @@ import com.msa.chatlab.core.storage.entity.*
         ProfileEntity::class,
         RunEntity::class,
         EventEntity::class,
-        PresetEntity::class
+        PresetEntity::class,
+        AckEntity::class,
+        DedupEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class ChatLabDatabase : RoomDatabase() {
@@ -28,6 +30,8 @@ abstract class ChatLabDatabase : RoomDatabase() {
     abstract fun runDao(): RunDao
     abstract fun eventDao(): EventDao
     abstract fun presetDao(): PresetDao
+    abstract fun ackDao(): AckDao
+    abstract fun dedupDao(): DedupDao
 
     companion object {
         const val DATABASE_NAME = "chatlab.db"

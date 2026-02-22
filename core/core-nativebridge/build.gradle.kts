@@ -22,5 +22,5 @@ android {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
-    implementation(project(":core:core-data"))
+    implementation(project(":core:core-domain"))
 }

@@ -27,5 +27,4 @@ dependencies {
 
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.androidx.core.ktx)
-    implementation(project(":core:core-designsystem"))
 }

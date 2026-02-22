@@ -1,5 +1,6 @@
 package com.msa.chatlab.core.data.manager
 
+import com.msa.chatlab.core.common.concurrency.AppScope
 import com.msa.chatlab.core.common.util.Backoff
 import com.msa.chatlab.core.data.active.ActiveProfileStore
 import com.msa.chatlab.core.data.registry.ProtocolResolver
@@ -18,12 +19,13 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 class ConnectionManager(
+    private val appScope: AppScope,
     private val activeProfileStore: ActiveProfileStore,
     private val resolver: ProtocolResolver,
     private val logger: AppLogger,
     private val crash: CrashReporter
 ) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope: CoroutineScope get() = appScope.scope
     private val connectMutex = Mutex()
 
     private val _transport = MutableStateFlow<TransportContract?>(null)

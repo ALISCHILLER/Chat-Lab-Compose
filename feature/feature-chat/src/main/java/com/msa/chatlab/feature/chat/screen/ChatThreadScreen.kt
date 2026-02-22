@@ -42,7 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.msa.chatlab.core.designsystem.theme.LocalSpacing
+import com.msa.chatlab.core.common.theme.LocalSpacing
 import com.msa.chatlab.core.domain.model.ChatMessage
 import com.msa.chatlab.core.domain.model.MessageDirection
 import com.msa.chatlab.feature.chat.vm.ChatThreadUiState
@@ -55,7 +55,7 @@ fun ChatThreadScreen(
     state: ChatThreadUiState,
     onBack: () -> Unit,
     onSend: (String) -> Unit,
-    imeInsets: WindowInsets
+    imeInsets: WindowInsets,
 ) {
     val s = LocalSpacing.current
     var input by remember { mutableStateOf("") }
@@ -66,7 +66,9 @@ fun ChatThreadScreen(
     }
 
     Column(
-        Modifier.fillMaxSize().padding(padding),
+        Modifier
+            .fillMaxSize()
+            .padding(padding),
         verticalArrangement = Arrangement.spacedBy(s.md)
     ) {
         TopAppBar(
@@ -85,7 +87,9 @@ fun ChatThreadScreen(
 
         ElevatedCard(Modifier.weight(1f).fillMaxWidth()) {
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(s.md),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(s.md),
                 state = listState,
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
@@ -101,9 +105,9 @@ fun ChatThreadScreen(
             }
         }
 
-        // ✅ IME-safe composer
         Row(
-            Modifier.fillMaxWidth()
+            Modifier
+                .fillMaxWidth()
                 .windowInsetsPadding(imeInsets)
                 .padding(bottom = s.sm),
             verticalAlignment = Alignment.CenterVertically,

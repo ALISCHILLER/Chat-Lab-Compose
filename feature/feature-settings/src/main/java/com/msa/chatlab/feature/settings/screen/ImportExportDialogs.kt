@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
-import com.msa.chatlab.core.designsystem.theme.LocalSpacing
+import com.msa.chatlab.core.common.theme.LocalSpacing
 import com.msa.chatlab.feature.settings.state.ImportExportUi
 
 @Composable

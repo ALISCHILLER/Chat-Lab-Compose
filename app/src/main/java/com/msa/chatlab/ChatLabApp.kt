@@ -2,17 +2,13 @@ package com.msa.chatlab
 
 import android.app.Application
 import android.os.StrictMode
-import com.msa.chatlab.BuildConfig
-import com.msa.chatlab.core.data.manager.ConnectionLogBinder
-import com.msa.chatlab.core.data.manager.TransportMessageBinder
-import com.msa.chatlab.core.data.outbox.OutboxProcessor
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.msa.chatlab.di.AppModule
+import org.koin.android.ext.android.get
 import org.koin.android.ext.koin.androidContext
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.get
 import org.koin.core.context.startKoin
 
-class ChatLabApp : Application(), KoinComponent {
+class ChatLabApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
@@ -30,9 +26,7 @@ class ChatLabApp : Application(), KoinComponent {
             modules(AppModule)
         }
 
-        // ✅ start background binders
-        get<ConnectionLogBinder>().start()
-        get<TransportMessageBinder>().start()
-        get<OutboxProcessor>().start()
+        val lifecycleObserver = get<AppLifecycleObserver>()
+        ProcessLifecycleOwner.get().lifecycle.addObserver(lifecycleObserver)
     }
 }

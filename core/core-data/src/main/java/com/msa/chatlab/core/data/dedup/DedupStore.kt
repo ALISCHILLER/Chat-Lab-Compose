@@ -2,9 +2,11 @@ package com.msa.chatlab.core.data.dedup
 
 interface DedupStore {
     /**
-     * @return true اگر باید پردازش شود (جدید است)، false اگر تکراری است
+     * @return true if the key is new and should be processed, false if it's a duplicate.
      */
-    fun shouldProcess(key: String): Boolean
-    fun prune()
-    fun clear()
+    suspend fun shouldProcess(key: String): Boolean
+
+    suspend fun prune()
+
+    suspend fun clear()
 }

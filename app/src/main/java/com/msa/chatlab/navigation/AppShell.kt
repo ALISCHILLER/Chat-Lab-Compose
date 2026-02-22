@@ -1,31 +1,45 @@
 package com.msa.chatlab.navigation
 
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BugReport
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.compose.*
-import com.msa.chatlab.bootstrap.StartupNoticeStore
-import com.msa.chatlab.core.common.ui.UiEffect
-import com.msa.chatlab.core.common.ui.UiMessenger
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import com.msa.chatlab.core.common.ui.insets.AppContentInsets
 import com.msa.chatlab.feature.chat.route.ChatRootRoute
 import com.msa.chatlab.feature.connect.route.ConnectRoute
 import com.msa.chatlab.feature.debug.route.DebugRoute
 import com.msa.chatlab.feature.lab.route.LabRoute
 import com.msa.chatlab.feature.settings.route.SettingsRoute
-import org.koin.androidx.compose.get
+import com.msa.chatlab.vm.SnackbarViewModel
+import org.koin.androidx.compose.koinViewModel
 
 sealed class TopLevel(val route: String, val label: String, val icon: ImageVector) {
     object Chat : TopLevel("chat", "Chat", TopLevelDestination.Chat.icon)
@@ -36,10 +50,9 @@ sealed class TopLevel(val route: String, val label: String, val icon: ImageVecto
 }
 
 @Composable
-fun AppShell(modifier: Modifier = Modifier) {
+fun AppShell() {
     val navController = rememberNavController()
-    val messenger: UiMessenger = get()
-    val noticeStore: StartupNoticeStore = get()
+    val snackbarViewModel: SnackbarViewModel = koinViewModel()
 
     val items = listOf(TopLevel.Chat, TopLevel.Lab, TopLevel.Connect, TopLevel.Settings, TopLevel.Debug)
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -48,11 +61,8 @@ fun AppShell(modifier: Modifier = Modifier) {
     val snackHost = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
-        noticeStore.consume()?.let { msg -> snackHost.showSnackbar(msg) }
-        messenger.effects.collect { eff ->
-            when (eff) {
-                is UiEffect.Snackbar -> snackHost.showSnackbar(eff.message)
-            }
+        snackbarViewModel.snackbarMessages.collect { message ->
+            snackHost.showSnackbar(message)
         }
     }
 
@@ -64,69 +74,85 @@ fun AppShell(modifier: Modifier = Modifier) {
         }
     }
 
-    BoxWithConstraints(modifier) {
-        val useRail = maxWidth >= 840.dp
+    val configuration = LocalConfiguration.current
+    val useRail = configuration.screenWidthDp.dp >= 840.dp
 
-        Scaffold(
-            snackbarHost = { SnackbarHost(snackHost) },
-            contentWindowInsets = AppContentInsets,
-            bottomBar = {
-                if (!useRail) {
-                    NavigationBar {
-                        items.forEach { item ->
-                            val selected = currentDest?.hierarchy?.any { it.route == item.route } == true
-                            NavigationBarItem(
-                                selected = selected,
-                                onClick = { navTop(item.route) },
-                                icon = { Icon(item.icon, contentDescription = item.label) },
-                                label = { Text(item.label) }
-                            )
-                        }
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackHost) },
+        contentWindowInsets = AppContentInsets,
+        bottomBar = {
+            if (!useRail) {
+                NavigationBar {
+                    items.forEach { item ->
+                        AppNavigationBarItem(item, currentDest) { navTop(item.route) }
                     }
-                }
-            }
-        ) { padding ->
-            Row(
-                Modifier.fillMaxSize()
-                    .padding(padding)
-                    .consumeWindowInsets(padding)
-            ) {
-                if (useRail) {
-                    NavigationRail {
-                        items.forEach { item ->
-                            val selected = currentDest?.hierarchy?.any { it.route == item.route } == true
-                            NavigationRailItem(
-                                selected = selected,
-                                onClick = { navTop(item.route) },
-                                icon = { Icon(item.icon, contentDescription = item.label) },
-                                label = { Text(item.label) }
-                            )
-                        }
-                    }
-                }
-
-                NavHost(
-                    navController = navController,
-                    startDestination = TopLevel.Chat.route,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    composable(TopLevel.Chat.route) { ChatRootRoute(padding = PaddingValues(16.dp)) }
-                    composable(TopLevel.Lab.route) { LabRoute(padding = PaddingValues(16.dp)) }
-                    composable(TopLevel.Connect.route) {
-                        ConnectRoute(
-                            padding = PaddingValues(16.dp),
-                            snackbarHostState = snackHost,
-                            onGoSettings = { navTop(TopLevel.Settings.route) }
-                        )
-                    }
-
-                    // ✅ FIX: SettingsRoute فقط padding می‌گیرد
-                    composable(TopLevel.Settings.route) { SettingsRoute(padding = PaddingValues(16.dp)) }
-
-                    // ✅ FIX: DebugRoute فقط padding می‌گیرد
-                    composable(TopLevel.Debug.route) { DebugRoute(padding = PaddingValues(16.dp)) }
                 }
             }
         }
+    ) { padding ->
+        Row(
+            Modifier.fillMaxSize()
+                .padding(padding)
+                .consumeWindowInsets(padding)
+        ) {
+            if (useRail) {
+                NavigationRail {
+                    items.forEach { item ->
+                        AppNavigationRailItem(item, currentDest) { navTop(item.route) }
+                    }
+                }
+            }
+
+            NavHost(
+                navController = navController,
+                startDestination = TopLevel.Chat.route,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                val contentPadding = PaddingValues(16.dp)
+                composable(TopLevel.Chat.route) { ChatRootRoute(padding = contentPadding) }
+                composable(TopLevel.Lab.route) { LabRoute(padding = contentPadding) }
+                composable(TopLevel.Connect.route) {
+                    ConnectRoute(
+                        padding = contentPadding,
+                        snackbarHostState = snackHost,
+                        onGoSettings = { navTop(TopLevel.Settings.route) }
+                    )
+                }
+
+                composable(TopLevel.Settings.route) { SettingsRoute(padding = contentPadding) }
+
+                composable(TopLevel.Debug.route) { DebugRoute(padding = contentPadding) }
+            }
+        }
     }
+}
+
+@Composable
+private fun RowScope.AppNavigationBarItem(
+    item: TopLevel,
+    currentDestination: NavDestination?,
+    onClick: () -> Unit
+) {
+    val selected = currentDestination?.hierarchy?.any { it.route == item.route } == true
+    NavigationBarItem(
+        selected = selected,
+        onClick = onClick,
+        icon = { Icon(item.icon, contentDescription = item.label) },
+        label = { Text(item.label) }
+    )
+}
+
+@Composable
+private fun AppNavigationRailItem(
+    item: TopLevel,
+    currentDestination: NavDestination?,
+    onClick: () -> Unit
+) {
+    val selected = currentDestination?.hierarchy?.any { it.route == item.route } == true
+    NavigationRailItem(
+        selected = selected,
+        onClick = onClick,
+        icon = { Icon(item.icon, contentDescription = item.label) },
+        label = { Text(item.label) }
+    )
 }

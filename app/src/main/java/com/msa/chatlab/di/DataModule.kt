@@ -1,14 +1,15 @@
 package com.msa.chatlab.di
 
+import com.msa.chatlab.AppLifecycleObserver
 import com.msa.chatlab.core.data.ack.AckTracker
-import com.msa.chatlab.core.data.ack.InMemoryAckTracker
+import com.msa.chatlab.core.data.ack.RoomAckTracker
 import com.msa.chatlab.core.data.active.ActiveProfileStore
-import com.msa.chatlab.core.data.active.PersistentActiveProfileStore
+import com.msa.chatlab.core.data.active.DataStoreActiveProfileStore
 import com.msa.chatlab.core.data.codec.ProfileJsonCodec
 import com.msa.chatlab.core.data.codec.WirePayloadCodec
 import com.msa.chatlab.core.data.dedup.DedupStore
-import com.msa.chatlab.core.data.dedup.LruDedupStore
-import com.msa.chatlab.core.data.lab.DeviceInfoProvider
+import com.msa.chatlab.core.data.dedup.RoomDedupStore
+import com.msa.chatlab.core.domain.model.device.DeviceInfoProvider
 import com.msa.chatlab.core.data.lab.ScenarioExecutor
 import com.msa.chatlab.core.data.lab.SessionExporter
 import com.msa.chatlab.core.data.manager.ConnectionLogBinder
@@ -28,15 +29,11 @@ import com.msa.chatlab.core.data.repository.RoomProfileRepository
 import com.msa.chatlab.core.data.telemetry.TelemetryLogger
 import com.msa.chatlab.core.domain.repository.MessageRepository
 import com.msa.chatlab.core.nativebridge.device.AndroidDeviceInfoProvider
-import com.msa.chatlab.core.observability.crash.CrashReporter
-import com.msa.chatlab.core.observability.log.AppLogger
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
 val DataModule = module {
+    includes(CoreModule)
 
     // codec + repositories
     single { ProfileJsonCodec() }
@@ -46,7 +43,7 @@ val DataModule = module {
     single<MessageRepository> { RoomMessageRepository(get()) }
 
     // active profile
-    single<ActiveProfileStore> { PersistentActiveProfileStore(androidContext(), get()) }
+    single<ActiveProfileStore> { DataStoreActiveProfileStore(androidContext(), get()) }
     single { ProfileManager(get(), get()) }
 
     // protocols & connection
@@ -54,21 +51,21 @@ val DataModule = module {
     single { ProtocolResolver(get(), get()) }
 
     single { ConnectionLogStore() }
-    single { ConnectionLogBinder(get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.IO)) }
+    single { ConnectionLogBinder(get(), get(), get()) }
 
-    single { ConnectionManager(get(), get(), get(), get()) }
+    single { ConnectionManager(get(), get(), get(), get(), get()) }
 
     // outbox
     single<OutboxQueue> { RoomOutboxQueue(get()) }
-    single<AckTracker> { InMemoryAckTracker() }
-    single<DedupStore> { LruDedupStore(maxSize = 10_000, ttlMs = 120_000) }
+    single<AckTracker> { RoomAckTracker(get()) }
+    single<DedupStore> { RoomDedupStore(get()) }
     single { OutboxProcessor(get(), get(), get(), get(), get(), get(), get()) }
 
     // sender
     single { MessageSender(get(), get(), get(), get()) }
 
     // message binder
-    single { TransportMessageBinder(get(), get(), get(), get(), get(), get()) }
+    single { TransportMessageBinder(get(), get(), get(), get(), get(), get(), get()) }
 
     // lab dependencies
     single<DeviceInfoProvider> { AndroidDeviceInfoProvider(androidContext()) }
@@ -84,7 +81,6 @@ val DataModule = module {
         )
     }
 
-    // observability deps already in CoreModule
-    single<AppLogger> { get() }
-    single<CrashReporter> { get() }
+    // lifecycle observer
+    single { AppLifecycleObserver(get(), get(), get()) }
 }

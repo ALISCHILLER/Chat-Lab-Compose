@@ -14,7 +14,7 @@ val StorageModule = module {
             ChatLabDatabase::class.java,
             ChatLabDatabase.DATABASE_NAME
         )
-            .addMigrations(Migrations.MIGRATION_1_2, Migrations.MIGRATION_2_3)
+            .addMigrations(Migrations.MIGRATION_1_2, Migrations.MIGRATION_2_3, Migrations.MIGRATION_3_4)
             .build()
     }
 
@@ -24,4 +24,6 @@ val StorageModule = module {
     single { get<ChatLabDatabase>().runDao() }
     single { get<ChatLabDatabase>().eventDao() }
     single { get<ChatLabDatabase>().presetDao() }
+    single { get<ChatLabDatabase>().ackDao() }
+    single { get<ChatLabDatabase>().dedupDao() }
 }

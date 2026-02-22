@@ -1,8 +1,31 @@
 package com.msa.chatlab.feature.lab.screen
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -14,9 +37,9 @@ import com.msa.chatlab.feature.lab.state.LabUiState
 
 @Composable
 fun LabScreen(
+    padding: PaddingValues,
     state: LabUiState,
     onEvent: (LabUiEvent) -> Unit,
-    padding: PaddingValues
 ) {
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("Run", "Results")
@@ -42,7 +65,6 @@ fun LabScreen(
         }
     }
 
-    // ✅ فاز ۱.۶: Stop Confirmation Dialog
     if (state.showStopConfirm) {
         AlertDialog(
             onDismissRequest = { onEvent(LabUiEvent.DismissStopConfirm) },
@@ -80,7 +102,6 @@ private fun RunTab(state: LabUiState, onEvent: (LabUiEvent) -> Unit) {
             )
         }
 
-        // ✅ فاز ۱.۶: Summary Card
         if (state.runResult != null && state.activeScenario != null) {
             RunSummaryCard(
                 scenario = state.activeScenario,
@@ -117,7 +138,7 @@ private fun ScenarioPresetsSection(onEvent: (LabUiEvent) -> Unit, isRunning: Boo
 private fun RunningSection(
     scenario: Scenario,
     progress: RunProgress,
-    onStop: () -> Unit
+    onStop: () -> Unit,
 ) {
     val stopping = progress.status == RunProgress.Status.Stopping
 
@@ -171,7 +192,7 @@ private fun RunSummaryCard(
     result: RunResult,
     canRetry: Boolean,
     onCopy: () -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
 ) {
     Card {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {

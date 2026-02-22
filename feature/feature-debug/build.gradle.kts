@@ -33,4 +33,5 @@ dependencies {
     implementation(project(":core:core-domain"))
     implementation(project(":core:core-observability"))
     implementation(project(":core:core-storage"))
+    implementation(project(":core:core-protocol-api"))
 }

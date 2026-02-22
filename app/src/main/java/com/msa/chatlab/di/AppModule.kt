@@ -6,7 +6,6 @@ import org.koin.dsl.module
 // Includes all the real, existing Koin modules for the app.
 val AppModule = module {
     includes(
-        CoreModule,
         DataModule,
         FeatureModule,
 

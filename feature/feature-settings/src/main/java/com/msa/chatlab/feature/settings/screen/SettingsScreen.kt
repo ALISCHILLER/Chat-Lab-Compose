@@ -1,33 +1,91 @@
 package com.msa.chatlab.feature.settings.screen
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.FileUpload
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
-import com.msa.chatlab.core.domain.model.*
+import com.msa.chatlab.core.domain.model.CodecMode
+import com.msa.chatlab.core.domain.model.MqttConfig
+import com.msa.chatlab.core.domain.model.Profile
+import com.msa.chatlab.core.domain.model.ProtocolType
+import com.msa.chatlab.core.domain.model.SignalRConfig
+import com.msa.chatlab.core.domain.model.SocketIoConfig
+import com.msa.chatlab.core.domain.model.TransportConfig
+import com.msa.chatlab.core.domain.model.WsKtorConfig
+import com.msa.chatlab.core.domain.model.WsOkHttpConfig
 import com.msa.chatlab.feature.settings.component.common.SearchBar
-import com.msa.chatlab.feature.settings.state.*
+import com.msa.chatlab.feature.settings.state.ImportExportUi
+import com.msa.chatlab.feature.settings.state.SettingsUiEvent
+import com.msa.chatlab.feature.settings.state.SettingsUiState
+import com.msa.chatlab.feature.settings.state.UiProfileCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     padding: PaddingValues,
     state: SettingsUiState,
-    onEvent: (SettingsUiEvent) -> Unit
+    onEvent: (SettingsUiEvent) -> Unit,
 ) {
     val clipboard = LocalClipboardManager.current
     var menuForId by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
-        modifier = Modifier.fillMaxSize().padding(padding),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding),
         topBar = {
             TopAppBar(
                 title = { Text("Profiles") },
@@ -47,7 +105,13 @@ fun SettingsScreen(
             }
         }
     ) { inner ->
-        Column(Modifier.fillMaxSize().padding(inner).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(inner)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             SearchBar(
                 query = state.searchQuery,
                 onQueryChange = { onEvent(SettingsUiEvent.SearchChanged(it)) }
@@ -71,28 +135,28 @@ fun SettingsScreen(
                             DropdownMenuItem(
                                 text = { Text("Activate") },
                                 enabled = !card.isActive,
-                                onClick = { menuForId = null; onEvent(SettingsUiEvent.Apply(card.id)) },
+                                onClick = { onEvent(SettingsUiEvent.Apply(card.id)); menuForId = null },
                                 leadingIcon = { Icon(Icons.Outlined.Check, null) }
                             )
                             DropdownMenuItem(
                                 text = { Text("Edit") },
-                                onClick = { menuForId = null; onEvent(SettingsUiEvent.Edit(card.id)) },
+                                onClick = { onEvent(SettingsUiEvent.Edit(card.id)); menuForId = null },
                                 leadingIcon = { Icon(Icons.Outlined.Edit, null) }
                             )
                             DropdownMenuItem(
                                 text = { Text("Duplicate") },
-                                onClick = { menuForId = null; onEvent(SettingsUiEvent.Duplicate(card.id)) },
+                                onClick = { onEvent(SettingsUiEvent.Duplicate(card.id)); menuForId = null },
                                 leadingIcon = { Icon(Icons.Outlined.ContentCopy, null) }
                             )
                             DropdownMenuItem(
                                 text = { Text("Export") },
-                                onClick = { menuForId = null; onEvent(SettingsUiEvent.ExportProfile(card.id)) },
+                                onClick = { onEvent(SettingsUiEvent.ExportProfile(card.id)); menuForId = null },
                                 leadingIcon = { Icon(Icons.Outlined.FileDownload, null) }
                             )
                             Divider()
                             DropdownMenuItem(
                                 text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
-                                onClick = { menuForId = null; onEvent(SettingsUiEvent.RequestDelete(card.id)) },
+                                onClick = { onEvent(SettingsUiEvent.RequestDelete(card.id)); menuForId = null },
                                 leadingIcon = { Icon(Icons.Outlined.Delete, null, tint = MaterialTheme.colorScheme.error) }
                             )
                         }
@@ -139,7 +203,6 @@ fun SettingsScreen(
         )
     }
 
-    // ✅ Editor sheet (product-style)
     state.editorProfile?.let { profile ->
         ProfileEditorBottomSheet(
             profile = profile,
@@ -156,10 +219,15 @@ fun SettingsScreen(
 private fun ProfileCardModern(
     card: UiProfileCard,
     onClick: () -> Unit,
-    onOverflow: () -> Unit
+    onOverflow: () -> Unit,
 ) {
     Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(card.title, style = MaterialTheme.typography.titleMedium)
@@ -180,13 +248,18 @@ private fun ProfileEditorBottomSheet(
     validationErrors: List<String>,
     onChange: (Profile) -> Unit,
     onSave: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     var tab by remember { mutableStateOf(0) }
     val tabs = listOf("General", "Protocol", "Reliability", "Payload & Chaos")
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Text("Edit profile", style = MaterialTheme.typography.titleLarge)
 
             if (validationErrors.isNotEmpty()) {
@@ -257,12 +330,14 @@ private fun EditorProtocol(profile: Profile, supported: List<ProtocolType>, onCh
 
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
         OutlinedTextField(
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(),
             value = profile.protocolType.name,
             onValueChange = {},
             readOnly = true,
             label = { Text("Protocol") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.fillMaxWidth().menuAnchor()
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             supported.forEach { pt ->
@@ -317,12 +392,14 @@ private fun EditorPayloadChaos(profile: Profile, onChange: (Profile) -> Unit) {
 
     ExposedDropdownMenuBox(expanded = codecExpanded, onExpandedChange = { codecExpanded = it }) {
         OutlinedTextField(
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(),
             value = profile.payloadProfile.codec.name,
             onValueChange = {},
             readOnly = true,
             label = { Text("Codec") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = codecExpanded) },
-            modifier = Modifier.fillMaxWidth().menuAnchor()
         )
         ExposedDropdownMenu(expanded = codecExpanded, onDismissRequest = { codecExpanded = false }) {
             CodecMode.values().forEach { cm ->
@@ -376,7 +453,7 @@ private fun ImportExportDialog(
     readOnly: Boolean = false,
     onConfirmLabel: String,
     onConfirm: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -406,25 +483,33 @@ private fun defaultTransport(pt: ProtocolType): TransportConfig = when (pt) {
     ProtocolType.SIGNALR -> SignalRConfig(endpoint = "https://example.com/chathub", hubMethodName = "Send")
 }
 
-/** ✅ minimal modern editors (to keep this file self-contained) */
-@Composable private fun WsOkHttpEditorModern(cfg: WsOkHttpConfig, onChanged: (WsOkHttpConfig) -> Unit) {
+@Composable
+private fun WsOkHttpEditorModern(cfg: WsOkHttpConfig, onChanged: (WsOkHttpConfig) -> Unit) {
     OutlinedTextField(cfg.endpoint, { onChanged(cfg.copy(endpoint = it)) }, label = { Text("Endpoint") }, modifier = Modifier.fillMaxWidth())
     OutlinedTextField(cfg.pingIntervalMs.toString(), { onChanged(cfg.copy(pingIntervalMs = it.toLongOrNull() ?: cfg.pingIntervalMs)) }, label = { Text("Ping ms") }, modifier = Modifier.fillMaxWidth())
 }
-@Composable private fun WsKtorEditorModern(cfg: WsKtorConfig, onChanged: (WsKtorConfig) -> Unit) {
+
+@Composable
+private fun WsKtorEditorModern(cfg: WsKtorConfig, onChanged: (WsKtorConfig) -> Unit) {
     OutlinedTextField(cfg.endpoint, { onChanged(cfg.copy(endpoint = it)) }, label = { Text("Endpoint") }, modifier = Modifier.fillMaxWidth())
     OutlinedTextField(cfg.connectTimeoutMs.toString(), { onChanged(cfg.copy(connectTimeoutMs = it.toLongOrNull() ?: cfg.connectTimeoutMs)) }, label = { Text("Connect timeout ms") }, modifier = Modifier.fillMaxWidth())
 }
-@Composable private fun MqttEditorModern(cfg: MqttConfig, onChanged: (MqttConfig) -> Unit) {
+
+@Composable
+private fun MqttEditorModern(cfg: MqttConfig, onChanged: (MqttConfig) -> Unit) {
     OutlinedTextField(cfg.endpoint, { onChanged(cfg.copy(endpoint = it)) }, label = { Text("Broker endpoint") }, modifier = Modifier.fillMaxWidth())
     OutlinedTextField(cfg.clientId, { onChanged(cfg.copy(clientId = it)) }, label = { Text("ClientId") }, modifier = Modifier.fillMaxWidth())
     OutlinedTextField(cfg.topic, { onChanged(cfg.copy(topic = it)) }, label = { Text("Topic") }, modifier = Modifier.fillMaxWidth())
 }
-@Composable private fun SocketIoEditorModern(cfg: SocketIoConfig, onChanged: (SocketIoConfig) -> Unit) {
+
+@Composable
+private fun SocketIoEditorModern(cfg: SocketIoConfig, onChanged: (SocketIoConfig) -> Unit) {
     OutlinedTextField(cfg.endpoint, { onChanged(cfg.copy(endpoint = it)) }, label = { Text("Endpoint") }, modifier = Modifier.fillMaxWidth())
     OutlinedTextField(cfg.events.joinToString(","), { onChanged(cfg.copy(events = it.split(",").map { s -> s.trim() }.filter { s -> s.isNotBlank() })) }, label = { Text("Events (csv)") }, modifier = Modifier.fillMaxWidth())
 }
-@Composable private fun SignalREditorModern(cfg: SignalRConfig, onChanged: (SignalRConfig) -> Unit) {
+
+@Composable
+private fun SignalREditorModern(cfg: SignalRConfig, onChanged: (SignalRConfig) -> Unit) {
     OutlinedTextField(cfg.endpoint, { onChanged(cfg.copy(endpoint = it)) }, label = { Text("Hub URL") }, modifier = Modifier.fillMaxWidth())
     OutlinedTextField(cfg.hubMethodName, { onChanged(cfg.copy(hubMethodName = it)) }, label = { Text("Hub method") }, modifier = Modifier.fillMaxWidth())
 }

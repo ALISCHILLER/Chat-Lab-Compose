@@ -14,9 +14,7 @@ import org.koin.androidx.compose.get
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun SettingsRoute(
-    padding: PaddingValues,
-) {
+fun SettingsRoute(padding: PaddingValues) {
     val vm: SettingsViewModel = koinViewModel()
     val messenger: UiMessenger = get()
     val state by vm.state.collectAsState()

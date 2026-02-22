@@ -5,8 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.WindowCompat
-import com.msa.chatlab.core.designsystem.theme.ChatLabTheme
 import com.msa.chatlab.navigation.AppShell
+import com.msa.chatlab.ui.theme.ChatLabTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -16,7 +16,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            ChatLabTheme {
+            ChatLabTheme() {
                 AppShell()
             }
         }

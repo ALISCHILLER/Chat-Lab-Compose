@@ -52,6 +52,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.lifecycle.process)
 
     // DI (Koin)
     implementation(libs.koin.android)
@@ -75,7 +76,6 @@ dependencies {
     implementation(project(":protocol:protocol-mqtt"))
 
     // Core modules
-    implementation(project(":core:core-designsystem"))
     implementation(project(":core:core-data"))
     implementation(project(":core:core-domain"))
     implementation(project(":core:core-common"))

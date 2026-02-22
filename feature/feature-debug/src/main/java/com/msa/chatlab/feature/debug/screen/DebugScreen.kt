@@ -16,7 +16,13 @@ fun DebugScreen(
     onToggleOffline: (Boolean) -> Unit,
     onClearLogs: () -> Unit
 ) {
-    Column(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(padding)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
         Text("Debug", style = MaterialTheme.typography.headlineSmall)
 
         Card {
