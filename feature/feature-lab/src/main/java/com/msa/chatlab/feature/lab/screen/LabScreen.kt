@@ -41,10 +41,27 @@ fun LabScreen(
             1 -> ResultsScreen(results = state.pastResults, padding = PaddingValues())
         }
     }
+
+    // ✅ فاز ۱.۶: Stop Confirmation Dialog
+    if (state.showStopConfirm) {
+        AlertDialog(
+            onDismissRequest = { onEvent(LabUiEvent.DismissStopConfirm) },
+            title = { Text("Stop scenario?") },
+            text = { Text("Are you sure you want to stop the running scenario?") },
+            confirmButton = {
+                Button(onClick = { onEvent(LabUiEvent.ConfirmStop) }) { Text("Stop") }
+            },
+            dismissButton = {
+                TextButton(onClick = { onEvent(LabUiEvent.DismissStopConfirm) }) { Text("Cancel") }
+            }
+        )
+    }
 }
 
 @Composable
 private fun RunTab(state: LabUiState, onEvent: (LabUiEvent) -> Unit) {
+    val busy = state.progress.status == RunProgress.Status.Running || state.progress.status == RunProgress.Status.Stopping
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -53,18 +70,25 @@ private fun RunTab(state: LabUiState, onEvent: (LabUiEvent) -> Unit) {
     ) {
         Text("Lab", style = MaterialTheme.typography.headlineSmall)
 
-        ScenarioPresetsSection(onEvent = onEvent, isRunning = state.progress.status == RunProgress.Status.Running)
+        ScenarioPresetsSection(onEvent = onEvent, isRunning = busy)
 
-        if (state.progress.status == RunProgress.Status.Running && state.activeScenario != null) {
+        if (busy && state.activeScenario != null) {
             RunningSection(
                 scenario = state.activeScenario,
                 progress = state.progress,
-                onStop = { onEvent(LabUiEvent.Stop) }
+                onStop = { onEvent(LabUiEvent.StopPressed) }
             )
         }
 
-        state.runResult?.let {
-            ResultsSection(result = it, onClear = { onEvent(LabUiEvent.ClearResults) })
+        // ✅ فاز ۱.۶: Summary Card
+        if (state.runResult != null && state.activeScenario != null) {
+            RunSummaryCard(
+                scenario = state.activeScenario,
+                result = state.runResult,
+                canRetry = !busy && state.lastPreset != null,
+                onCopy = { onEvent(LabUiEvent.CopyLastRunSummary) },
+                onRetry = { onEvent(LabUiEvent.RetryLast) }
+            )
         }
 
         state.errorMessage?.let {
@@ -95,12 +119,17 @@ private fun RunningSection(
     progress: RunProgress,
     onStop: () -> Unit
 ) {
+    val stopping = progress.status == RunProgress.Status.Stopping
+
     Card {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Running: ${scenario.name}", style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = if (stopping) "Stopping: ${scenario.name}" else "Running: ${scenario.name}",
+                style = MaterialTheme.typography.titleMedium
+            )
 
             LinearProgressIndicator(
-                progress = { progress.percent / 100f },
+                progress = { (progress.percent / 100f).coerceIn(0f, 1f) },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -112,8 +141,12 @@ private fun RunningSection(
                 CounterCard(title = "Failed", value = progress.failCount.toString())
             }
 
-            Button(onClick = onStop, modifier = Modifier.align(Alignment.End)) {
-                Text("Stop")
+            Button(
+                onClick = onStop,
+                enabled = !stopping,
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text(if (stopping) "Stopping…" else "Stop")
             }
         }
     }
@@ -133,17 +166,39 @@ private fun CounterCard(title: String, value: String) {
 }
 
 @Composable
-private fun ResultsSection(result: RunResult, onClear: () -> Unit) {
+private fun RunSummaryCard(
+    scenario: Scenario,
+    result: RunResult,
+    canRetry: Boolean,
+    onCopy: () -> Unit,
+    onRetry: () -> Unit
+) {
     Card {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Results", style = MaterialTheme.typography.titleMedium)
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Run Summary", style = MaterialTheme.typography.titleMedium)
 
-            Text("Sent: ${result.sent.size}")
-            Text("Received: ${result.received.size}")
-            Text("Failed: ${result.failed.size}")
+            Text("Scenario: ${scenario.name}  •  Pattern: ${scenario.pattern}")
+            Text("Duration: ${scenario.durationSec}s  •  RPS: ${scenario.rps}  •  Payload: ${scenario.payloadBytes} bytes")
 
-            Button(onClick = onClear, modifier = Modifier.align(Alignment.End)) {
-                Text("Clear Results")
+            HorizontalDivider()
+
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                AssistChip(onClick = {}, label = { Text("Enq: ${result.enqueuedCount}") })
+                AssistChip(onClick = {}, label = { Text("Sent: ${result.sentCount}") })
+                AssistChip(onClick = {}, label = { Text("Recv: ${result.receivedCount}") })
+                AssistChip(onClick = {}, label = { Text("Fail: ${result.failedCount}") })
+            }
+
+            Text("Success: " + "%.2f".format(result.successRatePercent) + "%   •   TPS: " + "%.2f".format(result.throughputMsgPerSec))
+            Text("Latency avg/p50/p95/p99: ${result.latencyAvgMs ?: "-"} / ${result.latencyP50Ms ?: "-"} / ${result.latencyP95Ms ?: "-"} / ${result.latencyP99Ms ?: "-"} ms")
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = onCopy) { Text("Copy metrics") }
+                Spacer(Modifier.width(8.dp))
+                Button(onClick = onRetry, enabled = canRetry) { Text("Retry last") }
             }
         }
     }

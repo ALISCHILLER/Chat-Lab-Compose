@@ -31,6 +31,11 @@ fun LabRoute(padding: PaddingValues) {
             when (eff) {
                 is LabUiEffect.ShowSnackbar -> messenger.trySnackbar(eff.message)
                 is LabUiEffect.ShowExportDialog -> export = eff.files
+
+                is LabUiEffect.CopyToClipboard -> {
+                    clipboard.setText(AnnotatedString(eff.text))
+                    messenger.trySnackbar("${eff.label} copied")
+                }
             }
         }
     }

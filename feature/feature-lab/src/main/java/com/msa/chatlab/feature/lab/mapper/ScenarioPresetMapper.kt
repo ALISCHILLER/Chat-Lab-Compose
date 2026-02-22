@@ -5,11 +5,13 @@ import com.msa.chatlab.core.domain.model.ScenarioPreset
 
 fun ScenarioPreset.toDataScenario(): Scenario {
     return when (this) {
-        ScenarioPreset.Stable -> Scenario(name = "Stable", durationSec = 60, rps = 10, payloadBytes = 1024, pattern = "steady")
-        ScenarioPreset.Intermittent -> Scenario(name = "Intermittent", durationSec = 60, rps = 5, payloadBytes = 1024, pattern = "steady")
-        ScenarioPreset.OfflineBurst -> Scenario(name = "OfflineBurst", durationSec = 60, rps = 20, payloadBytes = 1024, pattern = "burst")
-        ScenarioPreset.Lossy -> Scenario(name = "Lossy", durationSec = 60, rps = 10, payloadBytes = 1024, pattern = "steady")
-        ScenarioPreset.LoadBurst -> Scenario(name = "LoadBurst", durationSec = 60, rps = 100, payloadBytes = 1024, pattern = "burst")
-        ScenarioPreset.Custom -> TODO("Custom scenario preset not yet supported in the lab")
+        ScenarioPreset.Stable -> Scenario("Stable", 60, 10, 1024, "steady")
+        ScenarioPreset.Intermittent -> Scenario("Intermittent", 60, 5, 1024, "intermittent")
+        ScenarioPreset.OfflineBurst -> Scenario("Offline Burst", 60, 20, 1024, "offline_burst")
+        ScenarioPreset.Lossy -> Scenario("Lossy", 60, 10, 1024, "lossy")
+        ScenarioPreset.LoadBurst -> Scenario("Load Burst", 60, 100, 1024, "burst")
+
+        // ✅ قبلا TODO → کرش قطعی
+        ScenarioPreset.Custom -> Scenario("Custom", 30, 8, 512, "steady")
     }
 }

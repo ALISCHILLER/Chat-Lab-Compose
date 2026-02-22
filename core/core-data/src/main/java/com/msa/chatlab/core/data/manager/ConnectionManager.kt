@@ -1,7 +1,9 @@
 package com.msa.chatlab.core.data.manager
 
+import com.msa.chatlab.core.common.util.Backoff
 import com.msa.chatlab.core.data.active.ActiveProfileStore
 import com.msa.chatlab.core.data.registry.ProtocolResolver
+import com.msa.chatlab.core.domain.model.ReconnectBackoffMode
 import com.msa.chatlab.core.observability.crash.CrashReporter
 import com.msa.chatlab.core.observability.log.AppLogger
 import com.msa.chatlab.core.protocol.api.contract.ConnectionState
@@ -12,6 +14,8 @@ import com.msa.chatlab.core.protocol.api.event.TransportStatsEvent
 import com.msa.chatlab.core.protocol.api.payload.OutgoingPayload
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class ConnectionManager(
     private val activeProfileStore: ActiveProfileStore,
@@ -20,6 +24,7 @@ class ConnectionManager(
     private val crash: CrashReporter
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val connectMutex = Mutex()
 
     private val _transport = MutableStateFlow<TransportContract?>(null)
     val transport: StateFlow<TransportContract?> = _transport.asStateFlow()
@@ -36,18 +41,40 @@ class ConnectionManager(
     private val _simulateOffline = MutableStateFlow(false)
     val simulateOffline: StateFlow<Boolean> = _simulateOffline.asStateFlow()
 
+    private val desiredConnected = MutableStateFlow(false)
+
     private var bindJob: Job? = null
     private var reconnectJob: Job? = null
     private var disconnectRequested = false
+    private var lastDisconnectAt: Long = 0L
 
     init {
-        // ✅ auto switch transport when active profile changes
+        // وقتی پروفایل عوض می‌شود، transport عوض شود.
         scope.launch {
             activeProfileStore.activeProfile
                 .distinctUntilChangedBy { it?.id?.value }
-                .collectLatest {
+                .collectLatest { p ->
                     prepareTransport()
+                    // اگر user قصد اتصال داشته، transport جدید را وصل کن
+                    if (desiredConnected.value && !_simulateOffline.value) {
+                        connectInternal(reason = "profile_switch_autoconnect")
+                    }
                 }
+        }
+
+        // اگر simulateOffline روشن شد، reconnect را متوقف کن
+        scope.launch {
+            _simulateOffline.collectLatest { offline ->
+                if (offline) {
+                    reconnectJob?.cancel()
+                    reconnectJob = null
+                } else {
+                    // اگر offline خاموش شد و اتصال مورد انتظار است، reconnect را دوباره فعال کن
+                    if (desiredConnected.value && _connectionState.value is ConnectionState.Disconnected && !disconnectRequested) {
+                        scheduleReconnect("offline_disabled")
+                    }
+                }
+            }
         }
     }
 
@@ -64,6 +91,7 @@ class ConnectionManager(
         reconnectJob?.cancel()
         reconnectJob = null
 
+        // disconnect old
         _transport.value?.let { runCatching { it.disconnect() } }
 
         val profile = activeProfileStore.getActiveNow()
@@ -79,30 +107,27 @@ class ConnectionManager(
     }
 
     suspend fun connect() {
+        desiredConnected.value = true
         disconnectRequested = false
+        if (_simulateOffline.value) return
 
-        val t = _transport.value ?: run {
+        if (_transport.value == null) {
             prepareTransport()
-            _transport.value ?: error("Transport not prepared")
         }
-
-        logger.i("ConnectionManager", "connect()")
-
-        runCatching { t.connect() }.onFailure { ex ->
-            val err = TransportError("CONNECT_FAIL", ex.message ?: "connect failed", ex)
-            crash.record(ex, mapOf("reason" to "connect failed"))
-            logger.e("ConnectionManager", "connect failed", tr = ex)
-            _events.tryEmit(TransportEvent.ErrorOccurred(err))
-        }
+        connectInternal(reason = "user_connect")
     }
 
     suspend fun disconnect() {
+        desiredConnected.value = false
         disconnectRequested = true
+
         reconnectJob?.cancel()
         reconnectJob = null
 
-        logger.i("ConnectionManager", "disconnect()")
-        _transport.value?.let { runCatching { it.disconnect() } }
+        connectMutex.withLock {
+            logger.i("ConnectionManager", "disconnect()")
+            _transport.value?.let { runCatching { it.disconnect() } }
+        }
     }
 
     suspend fun send(payload: OutgoingPayload) {
@@ -119,7 +144,19 @@ class ConnectionManager(
                     _connectionState.value = st
                     logger.d("Transport", "state=$st")
 
-                    if (st is ConnectionState.Disconnected) maybeReconnect()
+                    when (st) {
+                        is ConnectionState.Connected -> {
+                            reconnectJob?.cancel()
+                            reconnectJob = null
+                        }
+                        is ConnectionState.Disconnected -> {
+                            lastDisconnectAt = System.currentTimeMillis()
+                            if (desiredConnected.value && !disconnectRequested && !_simulateOffline.value) {
+                                scheduleReconnect(st.reason ?: "disconnected")
+                            }
+                        }
+                        else -> Unit
+                    }
                 }
             }
             launch { t.stats.collect { _stats.value = it } }
@@ -127,23 +164,76 @@ class ConnectionManager(
         }
     }
 
-    private fun maybeReconnect() {
-        if (disconnectRequested) return
+    private suspend fun connectInternal(reason: String) {
+        connectMutex.withLock {
+            if (_simulateOffline.value) return@withLock
+            val t = _transport.value ?: run {
+                prepareTransport()
+                _transport.value ?: error("Transport not prepared")
+            }
+
+            logger.i("ConnectionManager", "connectInternal($reason)")
+            runCatching { t.connect() }
+                .onFailure { ex ->
+                    val err = TransportError("CONNECT_FAIL", ex.message ?: "connect failed", ex)
+                    crash.record(ex, mapOf("reason" to "connect failed", "stage" to reason))
+                    logger.e("ConnectionManager", "connect failed ($reason)", tr = ex)
+                    _events.tryEmit(TransportEvent.ErrorOccurred(err))
+
+                    // اگر کاربر هنوز اتصال می‌خواهد، reconnect را شروع کن
+                    if (desiredConnected.value && !disconnectRequested && !_simulateOffline.value) {
+                        scheduleReconnect("connect_failed")
+                    }
+                }
+        }
+    }
+
+    private fun scheduleReconnect(reason: String) {
         if (reconnectJob?.isActive == true) return
 
         val profile = activeProfileStore.getActiveNow() ?: return
         val policy = profile.reconnectPolicy
         if (!policy.enabled) return
+        if (disconnectRequested) return
 
         reconnectJob = scope.launch {
             var attempt = 0
-            while (isActive && !disconnectRequested) {
+            var lastAttemptAt = 0L
+
+            while (isActive && desiredConnected.value && !disconnectRequested) {
+                if (_simulateOffline.value) {
+                    delay(250)
+                    continue
+                }
+
                 if (_connectionState.value is ConnectionState.Connected) return@launch
                 if (attempt >= policy.maxAttempts) return@launch
-                attempt++
-                delay(policy.backoffMs)
 
-                runCatching { _transport.value?.connect() }
+                // reset attempt if long time passed
+                val now = System.currentTimeMillis()
+                if (lastAttemptAt != 0L && (now - lastAttemptAt) > policy.resetAfterMs) {
+                    attempt = 0
+                }
+
+                attempt += 1
+                lastAttemptAt = now
+
+                val delayMs = when (policy.mode) {
+                    ReconnectBackoffMode.Fixed ->
+                        Backoff.fixed(policy.backoffMs, policy.jitterRatio)
+                    ReconnectBackoffMode.Exponential ->
+                        Backoff.exponential(
+                            attempt = attempt,
+                            initialMs = policy.backoffMs,
+                            maxMs = policy.maxBackoffMs,
+                            jitterRatio = policy.jitterRatio
+                        )
+                }
+
+                logger.i("ConnectionManager", "reconnect attempt=$attempt in ${delayMs}ms reason=$reason")
+                delay(delayMs)
+
+                connectInternal(reason = "reconnect#$attempt")
             }
         }
     }

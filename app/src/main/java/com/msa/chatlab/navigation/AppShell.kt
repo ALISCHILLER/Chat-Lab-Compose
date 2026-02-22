@@ -8,27 +8,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BugReport
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.*
 import com.msa.chatlab.bootstrap.StartupNoticeStore
 import com.msa.chatlab.core.common.ui.UiEffect
 import com.msa.chatlab.core.common.ui.UiMessenger
@@ -61,14 +48,19 @@ fun AppShell(modifier: Modifier = Modifier) {
     val snackHost = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
-        noticeStore.consume()?.let { msg ->
-            snackHost.showSnackbar(msg)
-        }
-
+        noticeStore.consume()?.let { msg -> snackHost.showSnackbar(msg) }
         messenger.effects.collect { eff ->
             when (eff) {
                 is UiEffect.Snackbar -> snackHost.showSnackbar(eff.message)
             }
+        }
+    }
+
+    fun navTop(route: String) {
+        navController.navigate(route) {
+            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
         }
     }
 
@@ -85,7 +77,7 @@ fun AppShell(modifier: Modifier = Modifier) {
                             val selected = currentDest?.hierarchy?.any { it.route == item.route } == true
                             NavigationBarItem(
                                 selected = selected,
-                                onClick = { navController.navigate(item.route) { launchSingleTop = true; restoreState = true } },
+                                onClick = { navTop(item.route) },
                                 icon = { Icon(item.icon, contentDescription = item.label) },
                                 label = { Text(item.label) }
                             )
@@ -97,7 +89,7 @@ fun AppShell(modifier: Modifier = Modifier) {
             Row(
                 Modifier.fillMaxSize()
                     .padding(padding)
-                    .consumeWindowInsets(padding) // ✅ خیلی مهم
+                    .consumeWindowInsets(padding)
             ) {
                 if (useRail) {
                     NavigationRail {
@@ -105,7 +97,7 @@ fun AppShell(modifier: Modifier = Modifier) {
                             val selected = currentDest?.hierarchy?.any { it.route == item.route } == true
                             NavigationRailItem(
                                 selected = selected,
-                                onClick = { navController.navigate(item.route) { launchSingleTop = true; restoreState = true } },
+                                onClick = { navTop(item.route) },
                                 icon = { Icon(item.icon, contentDescription = item.label) },
                                 label = { Text(item.label) }
                             )
@@ -124,11 +116,15 @@ fun AppShell(modifier: Modifier = Modifier) {
                         ConnectRoute(
                             padding = PaddingValues(16.dp),
                             snackbarHostState = snackHost,
-                            onGoSettings = { navController.navigate(TopLevel.Settings.route) }
+                            onGoSettings = { navTop(TopLevel.Settings.route) }
                         )
                     }
-                    composable(TopLevel.Settings.route) { SettingsRoute(padding = PaddingValues(16.dp), onGoLab= {}, onGoConnect= {}, onGoChat= {}, onGoDebug = {}) }
-                    composable(TopLevel.Debug.route) { DebugRoute(onBack = { navController.popBackStack() }) }
+
+                    // ✅ FIX: SettingsRoute فقط padding می‌گیرد
+                    composable(TopLevel.Settings.route) { SettingsRoute(padding = PaddingValues(16.dp)) }
+
+                    // ✅ FIX: DebugRoute فقط padding می‌گیرد
+                    composable(TopLevel.Debug.route) { DebugRoute(padding = PaddingValues(16.dp)) }
                 }
             }
         }

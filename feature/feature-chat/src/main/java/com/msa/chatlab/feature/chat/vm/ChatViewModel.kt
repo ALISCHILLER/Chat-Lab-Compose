@@ -39,13 +39,14 @@ class ChatViewModel(
             combine(
                 messageRepository.observeMessages(activeProfile.id),
                 outboxQueue.observeCount(activeProfile.id.value, com.msa.chatlab.core.storage.entity.OutboxStatus.PENDING),
+                outboxQueue.observeCount(activeProfile.id.value, com.msa.chatlab.core.storage.entity.OutboxStatus.IN_FLIGHT),
                 outboxQueue.observeCount(activeProfile.id.value, com.msa.chatlab.core.storage.entity.OutboxStatus.FAILED),
                 errorFlow
-            ) { messages, pendingCount, failedCount, error ->
+            ) { messages, pendingCount, inflightCount, failedCount, error ->
                 ChatUiState(
                     profileName = activeProfile.name,
                     messages = messages.map { it.toUiModel() },
-                    outboxCount = pendingCount + failedCount,
+                    outboxCount = pendingCount + inflightCount + failedCount,
                     error = error
                 )
             }

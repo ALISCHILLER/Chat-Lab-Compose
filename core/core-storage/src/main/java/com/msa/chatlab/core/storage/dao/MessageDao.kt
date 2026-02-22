@@ -37,6 +37,10 @@ interface MessageDao {
         updatedAt: Long
     )
 
+    // ✅ فاز ۲: جلوگیری از overwrite
+    @Query("SELECT direction FROM messages WHERE profile_id = :profileId AND message_id = :messageId LIMIT 1")
+    suspend fun getDirection(profileId: String, messageId: String): String?
+
     @Query("DELETE FROM messages WHERE profile_id = :profileId")
     suspend fun deleteByProfile(profileId: String)
 
@@ -63,13 +67,14 @@ interface MessageDao {
     )
     fun observeConversations(profileId: String): Flow<List<ConversationRow>>
 
-    @Query("""
+    @Query(
+        """
         UPDATE messages
         SET status = :status,
             last_error = :lastError,
             updated_at = :updatedAt
         WHERE message_id = :messageId
-    """
+        """
     )
     suspend fun updateStatusByMessageId(messageId: String, status: String, lastError: String?, updatedAt: Long)
 

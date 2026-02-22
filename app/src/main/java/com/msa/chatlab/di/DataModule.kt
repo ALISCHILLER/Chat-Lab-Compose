@@ -1,14 +1,22 @@
 package com.msa.chatlab.di
 
+import com.msa.chatlab.core.data.ack.AckTracker
+import com.msa.chatlab.core.data.ack.InMemoryAckTracker
 import com.msa.chatlab.core.data.active.ActiveProfileStore
 import com.msa.chatlab.core.data.active.PersistentActiveProfileStore
 import com.msa.chatlab.core.data.codec.ProfileJsonCodec
-import com.msa.chatlab.core.data.codec.StandardEnvelopeCodec
 import com.msa.chatlab.core.data.codec.WirePayloadCodec
+import com.msa.chatlab.core.data.dedup.DedupStore
+import com.msa.chatlab.core.data.dedup.LruDedupStore
 import com.msa.chatlab.core.data.lab.DeviceInfoProvider
 import com.msa.chatlab.core.data.lab.ScenarioExecutor
 import com.msa.chatlab.core.data.lab.SessionExporter
-import com.msa.chatlab.core.data.manager.*
+import com.msa.chatlab.core.data.manager.ConnectionLogBinder
+import com.msa.chatlab.core.data.manager.ConnectionLogStore
+import com.msa.chatlab.core.data.manager.ConnectionManager
+import com.msa.chatlab.core.data.manager.MessageSender
+import com.msa.chatlab.core.data.manager.ProfileManager
+import com.msa.chatlab.core.data.manager.TransportMessageBinder
 import com.msa.chatlab.core.data.outbox.OutboxProcessor
 import com.msa.chatlab.core.data.outbox.OutboxQueue
 import com.msa.chatlab.core.data.outbox.RoomOutboxQueue
@@ -17,6 +25,7 @@ import com.msa.chatlab.core.data.registry.ProtocolResolver
 import com.msa.chatlab.core.data.repository.ProfileRepository
 import com.msa.chatlab.core.data.repository.RoomMessageRepository
 import com.msa.chatlab.core.data.repository.RoomProfileRepository
+import com.msa.chatlab.core.data.telemetry.TelemetryLogger
 import com.msa.chatlab.core.domain.repository.MessageRepository
 import com.msa.chatlab.core.nativebridge.device.AndroidDeviceInfoProvider
 import com.msa.chatlab.core.observability.crash.CrashReporter
@@ -31,6 +40,8 @@ val DataModule = module {
 
     // codec + repositories
     single { ProfileJsonCodec() }
+    single { WirePayloadCodec() }
+
     single<ProfileRepository> { RoomProfileRepository(get(), get()) }
     single<MessageRepository> { RoomMessageRepository(get()) }
 
@@ -45,24 +56,27 @@ val DataModule = module {
     single { ConnectionLogStore() }
     single { ConnectionLogBinder(get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.IO)) }
 
-    single { ConnectionManager(get(), get(), get(), get()) } // ActiveProfileStore, ProtocolResolver, AppLogger, CrashReporter
+    single { ConnectionManager(get(), get(), get(), get()) }
 
     // outbox
     single<OutboxQueue> { RoomOutboxQueue(get()) }
-    single { OutboxProcessor(get(), get(), get(), get(), get()) } // Added wireCodec
+    single<AckTracker> { InMemoryAckTracker() }
+    single<DedupStore> { LruDedupStore(maxSize = 10_000, ttlMs = 120_000) }
+    single { OutboxProcessor(get(), get(), get(), get(), get(), get(), get()) }
 
     // sender
     single { MessageSender(get(), get(), get(), get()) }
 
     // message binder
-    single { TransportMessageBinder(get(), get(), get()) }
+    single { TransportMessageBinder(get(), get(), get(), get(), get(), get()) }
 
     // lab dependencies
     single<DeviceInfoProvider> { AndroidDeviceInfoProvider(androidContext()) }
     single { SessionExporter(get(), get()) }
+    single { TelemetryLogger(get()) }
+
     single {
         ScenarioExecutor(
-            scope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
             activeProfileStore = get(),
             connectionManager = get(),
             messageSender = get(),
@@ -70,6 +84,7 @@ val DataModule = module {
         )
     }
 
-    // payload codec helpers
-    single { WirePayloadCodec() }
+    // observability deps already in CoreModule
+    single<AppLogger> { get() }
+    single<CrashReporter> { get() }
 }

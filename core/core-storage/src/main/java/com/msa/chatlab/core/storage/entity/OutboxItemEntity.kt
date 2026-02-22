@@ -4,7 +4,8 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 
-enum class OutboxStatus { PENDING, FAILED }
+// ✅ فاز ۲: IN_FLIGHT اضافه شد (بدون تغییر ستون status چون TEXT است)
+enum class OutboxStatus { PENDING, IN_FLIGHT, FAILED }
 
 @Entity(
     tableName = "outbox",

@@ -10,18 +10,28 @@ import com.msa.chatlab.core.domain.model.RunSession
 import com.msa.chatlab.core.domain.model.Scenario
 import com.msa.chatlab.core.domain.value.RunId
 import com.msa.chatlab.core.domain.value.TimestampMillis
+import com.msa.chatlab.core.protocol.api.contract.ConnectionState
 import com.msa.chatlab.core.protocol.api.event.TransportEvent
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.util.UUID
+import kotlin.math.roundToInt
 
 class ScenarioExecutor(
-    private val scope: CoroutineScope,
     private val activeProfileStore: ActiveProfileStore,
     private val connectionManager: ConnectionManager,
     private val messageSender: MessageSender,
     private val deviceInfo: DeviceInfoProvider
 ) {
+
     data class RunBundle(
         val session: RunSession,
         val events: List<RunEvent>,
@@ -34,52 +44,76 @@ class ScenarioExecutor(
     private val events = mutableListOf<RunEvent>()
     private val metrics = MetricsCalculator()
 
-    private var collectorJob: Job? = null
     var currentRun: RunSession? = null
 
-    suspend fun execute(scenario: Scenario): RunBundle {
-        _progress.value = RunProgress(status = RunProgress.Status.Running)
+    suspend fun execute(scenario: Scenario): RunBundle = coroutineScope {
+        metrics.reset()
         events.clear()
-        metrics.counters.apply { sent = 0; received = 0; failed = 0; enqueued = 0 }
+        connectionManager.setSimulateOffline(false)
 
         val profile = activeProfileStore.getActiveNow()
-            ?: error("No active profile selected").also {
-                _progress.value = RunProgress(status = RunProgress.Status.Failed, lastError = "No active profile")
-            }
+        if (profile == null) {
+            _progress.value = RunProgress(status = RunProgress.Status.Failed, lastError = "No active profile selected")
+            throw IllegalStateException("No active profile selected")
+        }
 
         val startMs = System.currentTimeMillis()
         val runId = RunId("run-$startMs")
+        val seed = startMs
 
-        currentRun = RunSession(
+        val session = RunSession(
             runId = runId,
             scenario = scenario,
             startedAt = startMs,
-            seed = System.currentTimeMillis(),
+            seed = seed,
             networkLabel = deviceInfo.networkLabel()
         )
+        currentRun = session
+
+        _progress.value = RunProgress(status = RunProgress.Status.Running, percent = 0, elapsedMs = 0)
 
         connectionManager.prepareTransport()
         connectionManager.connect()
 
-        startCollectingEvents()
+        val collectorJob = launch {
+            connectionManager.events.collect { ev ->
+                when (ev) {
+                    is TransportEvent.Connected -> record(RunEvent.Connected(t = nowTs()))
+                    is TransportEvent.Disconnected -> record(RunEvent.Disconnected(t = nowTs(), reason = ev.reason ?: "unknown"))
 
-        val chaos = ChaosEngine(currentRun!!.seed)
+                    is TransportEvent.MessageSent -> {
+                        metrics.onSent(ev.messageId, nowTs().value)
+                        record(RunEvent.Sent(t = nowTs(), messageId = ev.messageId))
+                    }
 
-        val load = LoadGenerator(
-            scope = scope,
-            durationMs = scenario.durationSec * 1000L,
-            ratePerSecond = scenario.rps.toDouble(),
-            burstEvery = 0,
-            burstSize = 0
-        ) { text ->
-            messageSender.sendText(text, "default")
+                    is TransportEvent.MessageReceived -> {
+                        val mid = ev.payload.envelope.messageId.value
+                        metrics.onReceived(mid, nowTs().value)
+                        record(RunEvent.Received(t = nowTs(), messageId = mid))
+                    }
+
+                    is TransportEvent.ErrorOccurred -> {
+                        metrics.onFailed()
+                        record(RunEvent.Failed(t = nowTs(), messageId = null, error = ev.error.message ?: "error"))
+                    }
+                }
+            }
         }
 
-        val progressUpdater = scope.launch {
+        val chaos = ChaosEngine(seed)
+        val dropRatePercent = if (scenario.pattern == "lossy") 20.0 else 0.0
+        val burstEvery = if (scenario.pattern == "burst") 20 else 0
+        val burstSize = if (scenario.pattern == "burst") 10 else 0
+
+        val progressJob = launch {
+            val totalMs = (scenario.durationSec * 1000L).coerceAtLeast(1L)
             while (isActive) {
                 val elapsed = System.currentTimeMillis() - startMs
-                val percent = ((elapsed.toDouble() / (scenario.durationSec * 1000L)) * 100).toInt().coerceIn(0, 100)
+                val percent = ((elapsed.toDouble() / totalMs.toDouble()) * 100.0)
+                    .roundToInt().coerceIn(0, 100)
+
                 _progress.value = _progress.value.copy(
+                    status = _progress.value.status,
                     percent = percent,
                     elapsedMs = elapsed,
                     sentCount = metrics.counters.sent,
@@ -90,47 +124,111 @@ class ScenarioExecutor(
             }
         }
 
-        val toggler = scope.launch { /* ... */ }
-        load.start()
-        delay(scenario.durationSec * 1000L + 1500)
+        val togglerJob = launch { applyNetworkPattern(pattern = scenario.pattern) }
 
-        load.stop()
-        toggler.cancel()
-        progressUpdater.cancel()
-        connectionManager.disconnect()
-        collectorJob?.cancel()
+        val load = LoadGenerator(
+            scope = this, // ✅ مهم: داخل همین coroutineScope
+            durationMs = scenario.durationSec * 1000L,
+            ratePerSecond = scenario.rps.toDouble(),
+            burstEvery = burstEvery,
+            burstSize = burstSize
+        ) { baseText ->
+            if (chaos.shouldDrop(dropRatePercent)) {
+                metrics.onFailed()
+                record(RunEvent.Failed(t = nowTs(), messageId = null, error = "Dropped by lossy profile"))
+                return@LoadGenerator
+            }
 
-        val result = metrics.buildResult(session = requireNotNull(currentRun), endedAt = System.currentTimeMillis())
-        _progress.value = _progress.value.copy(status = RunProgress.Status.Completed, percent = 100)
+            val mid = UUID.randomUUID().toString()
+            metrics.onEnqueued(mid)
+            record(RunEvent.Enqueued(t = nowTs(), messageId = mid))
 
-        return RunBundle(
-            session = requireNotNull(currentRun),
-            events = events.toList(),
-            result = result
-        )
+            val payload = padPayload(baseText, scenario.payloadBytes)
+            messageSender.sendTextWithMessageId(payload, "default", mid)
+        }
+
+        try {
+            load.start()
+            delay(scenario.durationSec * 1000L)
+            delay(1500)
+
+            val endedAt = System.currentTimeMillis()
+            val result = metrics.buildResult(session = session, endedAt = endedAt)
+
+            _progress.value = _progress.value.copy(status = RunProgress.Status.Completed, percent = 100)
+
+            RunBundle(session, events.toList(), result)
+        } catch (ce: CancellationException) {
+            _progress.value = _progress.value.copy(status = RunProgress.Status.Cancelled, lastError = "Cancelled")
+            throw ce
+        } catch (e: Exception) {
+            _progress.value = _progress.value.copy(status = RunProgress.Status.Failed, lastError = e.message)
+            throw e
+        } finally {
+            withContext(NonCancellable) {
+                if (_progress.value.status == RunProgress.Status.Running) {
+                    _progress.value = _progress.value.copy(status = RunProgress.Status.Stopping)
+                }
+
+                runCatching { load.stop() }
+                togglerJob.cancel()
+                progressJob.cancel()
+
+                connectionManager.setSimulateOffline(false)
+
+                runCatching { connectionManager.disconnect() }
+                waitForDisconnected(timeoutMs = 1200)
+                ensureDisconnectedEvent()
+
+                collectorJob.cancel()
+            }
+        }
     }
 
-    private fun startCollectingEvents() {
-        collectorJob?.cancel()
-        collectorJob = scope.launch {
-            connectionManager.events.collect { ev ->
-                when (ev) {
-                    is TransportEvent.Connected -> record(RunEvent.Connected(t = nowTs()))
-                    is TransportEvent.Disconnected -> record(RunEvent.Disconnected(t = nowTs(), reason = ev.reason ?: "unknown"))
-                    is TransportEvent.MessageSent -> {
-                        metrics.onSent(ev.messageId, nowTs().value)
-                        record(RunEvent.Sent(t = nowTs(), messageId = ev.messageId))
-                    }
-                    is TransportEvent.MessageReceived -> {
-                        metrics.onReceived(ev.payload.envelope?.messageId?.value, nowTs().value)
-                        record(RunEvent.Received(t = nowTs(), messageId = ev.payload.envelope?.messageId?.value))
-                    }
-                    is TransportEvent.ErrorOccurred -> {
-                        metrics.onFailed()
-                        record(RunEvent.Failed(t = nowTs(), messageId = null, error = ev.error.message ?: "error"))
-                    }
+    private suspend fun applyNetworkPattern(pattern: String) {
+        when (pattern) {
+            "offline_burst" -> {
+                connectionManager.setSimulateOffline(true)
+                delay(8_000)
+                connectionManager.setSimulateOffline(false)
+            }
+            "intermittent" -> {
+                while (kotlin.coroutines.coroutineContext.isActive) {
+                    connectionManager.setSimulateOffline(true)
+                    delay(2_000)
+                    connectionManager.setSimulateOffline(false)
+                    delay(5_000)
                 }
             }
+            else -> connectionManager.setSimulateOffline(false)
+        }
+    }
+
+    private suspend fun waitForDisconnected(timeoutMs: Long) {
+        withTimeoutOrNull(timeoutMs) {
+            while (kotlin.coroutines.coroutineContext.isActive) {
+                val st = connectionManager.connectionState.value
+                if (st is ConnectionState.Disconnected || st is ConnectionState.Idle) return@withTimeoutOrNull
+                delay(50)
+            }
+        }
+    }
+
+    private fun ensureDisconnectedEvent() {
+        if (events.none { it is RunEvent.Disconnected }) {
+            record(RunEvent.Disconnected(t = nowTs(), reason = "forced_disconnect_timeout"))
+        }
+    }
+
+    private fun padPayload(base: String, payloadBytes: Int): String {
+        if (payloadBytes <= 0) return base
+        val bytes = base.encodeToByteArray().size
+        if (bytes >= payloadBytes) return base
+        val pad = payloadBytes - bytes
+        return buildString {
+            append(base)
+            append(' ')
+            repeat(pad) { append('x') }
         }
     }
 

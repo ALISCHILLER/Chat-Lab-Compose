@@ -11,8 +11,13 @@ class RoomOutboxQueue(private val dao: OutboxDao) : OutboxQueue {
         dao.upsert(item.toEntity())
     }
 
-    override suspend fun peekOldestPending(profileId: String): OutboxItem? {
-        return dao.getOldest(profileId, OutboxStatus.PENDING)?.toDomain()
+    override suspend fun claimNextPending(profileId: String, leaseMs: Long): OutboxItem? {
+        return claimPendingBatch(profileId, leaseMs, limit = 1).firstOrNull()
+    }
+
+    override suspend fun claimPendingBatch(profileId: String, leaseMs: Long, limit: Int): List<OutboxItem> {
+        val now = System.currentTimeMillis()
+        return dao.claimPendingBatchTx(profileId = profileId, now = now, limit = limit).map { it.toDomain() }
     }
 
     override suspend fun remove(profileId: String, messageId: String) {
@@ -38,8 +43,26 @@ class RoomOutboxQueue(private val dao: OutboxDao) : OutboxQueue {
         )
     }
 
+    override suspend fun requeueExpiredInflight(profileId: String, leaseMs: Long): Int {
+        val now = System.currentTimeMillis()
+        val olderThan = now - leaseMs
+        return dao.requeueExpired(
+            profileId = profileId,
+            fromStatus = OutboxStatus.IN_FLIGHT,
+            toStatus = OutboxStatus.PENDING,
+            olderThan = olderThan,
+            updatedAt = now
+        )
+    }
+
+    override suspend fun count(profileId: String, statuses: List<OutboxStatus>): Int {
+        var total = 0
+        for (s in statuses.distinct()) total += dao.countByStatus(profileId, s)
+        return total
+    }
+
     override fun observeByStatus(profileId: String, status: OutboxStatus): Flow<List<OutboxItem>> {
-        return dao.observeByStatus(profileId, status).map { list -> list.map { it.toDomain() } }
+        return dao.observeByStatus(profileId, status).map { it.map { e -> e.toDomain() } }
     }
 
     override fun observeCount(profileId: String, status: OutboxStatus): Flow<Int> {

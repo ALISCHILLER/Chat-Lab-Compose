@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 
 data class OutboxUiState(
     val pendingItems: List<com.msa.chatlab.core.data.outbox.OutboxItem> = emptyList(),
+    val inFlightItems: List<com.msa.chatlab.core.data.outbox.OutboxItem> = emptyList(),
     val failedItems: List<com.msa.chatlab.core.data.outbox.OutboxItem> = emptyList()
 )
 
@@ -28,9 +29,10 @@ class OutboxViewModel(
             if (profile == null) flowOf(OutboxUiState())
             else combine(
                 outboxQueue.observeByStatus(profile.id.value, OutboxStatus.PENDING),
+                outboxQueue.observeByStatus(profile.id.value, OutboxStatus.IN_FLIGHT),
                 outboxQueue.observeByStatus(profile.id.value, OutboxStatus.FAILED)
-            ) { pending, failed ->
-                OutboxUiState(pendingItems = pending, failedItems = failed)
+            ) { pending, inflight, failed ->
+                OutboxUiState(pendingItems = pending, inFlightItems = inflight, failedItems = failed)
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OutboxUiState())
 

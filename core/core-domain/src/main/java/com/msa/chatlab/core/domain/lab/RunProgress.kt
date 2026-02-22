@@ -9,5 +9,12 @@ data class RunProgress(
     val failCount: Long = 0,
     val lastError: String? = null
 ) {
-    enum class Status { Idle, Running, Completed, Failed }
+    enum class Status {
+        Idle,
+        Running,
+        Stopping,   // ✅ فاز ۱.۵/۱.۶
+        Completed,
+        Cancelled,  // ✅ فاز ۱.۵/۱.۶
+        Failed
+    }
 }

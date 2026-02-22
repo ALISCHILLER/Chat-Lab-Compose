@@ -12,6 +12,7 @@ fun OutboxItem.toEntity(): OutboxItemEntity {
         body = body,
         createdAt = createdAt,
         attempt = attempt,
+        lastAttemptAt = lastAttemptAt,
         lastError = lastError,
         status = status,
         updatedAt = System.currentTimeMillis()
@@ -28,6 +29,7 @@ fun OutboxItemEntity.toDomain(): OutboxItem {
         body = body,
         createdAt = createdAt,
         attempt = attempt,
+        lastAttemptAt = lastAttemptAt,
         lastError = lastError,
         status = status
     )

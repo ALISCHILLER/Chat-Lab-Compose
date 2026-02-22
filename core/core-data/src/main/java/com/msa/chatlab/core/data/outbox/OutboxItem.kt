@@ -11,6 +11,7 @@ data class OutboxItem(
     val body: ByteArray,
     val createdAt: Long,
     val attempt: Int = 0,
+    val lastAttemptAt: Long? = null, // ✅ فاز ۲
     val lastError: String? = null,
     val status: OutboxStatus = OutboxStatus.PENDING
 ) {
@@ -25,6 +26,7 @@ data class OutboxItem(
             body.contentEquals(other.body) &&
             createdAt == other.createdAt &&
             attempt == other.attempt &&
+            lastAttemptAt == other.lastAttemptAt &&
             lastError == other.lastError &&
             status == other.status
     }
@@ -38,6 +40,7 @@ data class OutboxItem(
         result = 31 * result + body.contentHashCode()
         result = 31 * result + createdAt.hashCode()
         result = 31 * result + attempt
+        result = 31 * result + (lastAttemptAt?.hashCode() ?: 0)
         result = 31 * result + (lastError?.hashCode() ?: 0)
         result = 31 * result + status.hashCode()
         return result
