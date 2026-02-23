@@ -1,6 +1,5 @@
 package com.msa.chatlab.core.common.concurrency
 
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 
@@ -18,7 +17,7 @@ interface AppScope {
 }
 
 class DefaultAppScope(
-    coroutineDispatcher: CoroutineDispatcher
+    dispatcherProvider: DispatcherProvider
 ) : AppScope {
-    override val scope: CoroutineScope = CoroutineScope(SupervisorJob() + coroutineDispatcher)
+    override val scope: CoroutineScope = CoroutineScope(SupervisorJob() + dispatcherProvider.io)
 }

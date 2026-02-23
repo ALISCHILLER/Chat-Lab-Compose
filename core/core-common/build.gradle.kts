@@ -1,5 +1,5 @@
 plugins {
-    id("com.msa.chatlab.android.library")
+    id("com.msa.chatlab.android.library.compose")
 }
 
 android {
@@ -9,4 +9,7 @@ android {
 dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.koin.core)
+
+    // Add dependency to the design system module
+    implementation(project(":core:core-designsystem"))
 }
