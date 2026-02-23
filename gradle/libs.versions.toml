@@ -19,6 +19,7 @@ ktor = "2.3.11"
 paho = "1.2.5"
 socketio = "2.1.0"
 signalr = "8.0.0"
+slf4j = "1.7.36"
 
 junit = "4.13.2"
 androidx-test-ext = "1.1.5"
@@ -43,6 +44,7 @@ androidx-compose-material-icons-extended = { group = "androidx.compose.material"
 
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+kotlinx-coroutines-rx2 = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-rx2", version.ref = "coroutines" }
 
 koin-android = { group = "io.insert-koin", name = "koin-android", version.ref = "koin" }
 koin-compose = { group = "io.insert-koin", name = "koin-androidx-compose", version.ref = "koin" }
@@ -59,6 +61,11 @@ ktor-client-websockets = { group = "io.ktor", name = "ktor-client-websockets", v
 paho-mqtt = { group = "org.eclipse.paho", name = "org.eclipse.paho.client.mqttv3", version.ref = "paho" }
 socketio-client = { group = "io.socket", name = "socket.io-client", version.ref = "socketio" }
 signalr = { group = "com.microsoft.signalr", name = "signalr", version.ref = "signalr" }
+slf4j-android = { group = "org.slf4j", name = "slf4j-android", version.ref = "slf4j" }
+
+# Dependencies for build-logic
+android-gradle-plugin = { group = "com.android.tools.build", name = "gradle", version.ref = "agp" }
+kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-test-ext = { group = "androidx.test.ext", name = "junit", version.ref = "androidx-test-ext" }

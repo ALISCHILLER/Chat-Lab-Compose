@@ -17,6 +17,8 @@ dependencyResolutionManagement {
 
 rootProject.name = "ChatLab"
 
+includeBuild("build-logic")
+
 include(
     ":app",
 

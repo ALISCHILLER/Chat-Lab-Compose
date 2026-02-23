@@ -7,6 +7,9 @@ import com.msa.chatlab.core.data.registry.ProtocolResolver
 import com.msa.chatlab.core.domain.model.ReconnectBackoffMode
 import com.msa.chatlab.core.observability.crash.CrashReporter
 import com.msa.chatlab.core.observability.log.AppLogger
+import com.msa.chatlab.core.observability.log.d
+import com.msa.chatlab.core.observability.log.e
+import com.msa.chatlab.core.observability.log.i
 import com.msa.chatlab.core.protocol.api.contract.ConnectionState
 import com.msa.chatlab.core.protocol.api.contract.TransportContract
 import com.msa.chatlab.core.protocol.api.error.TransportError
@@ -179,7 +182,7 @@ class ConnectionManager(
                 .onFailure { ex ->
                     val err = TransportError("CONNECT_FAIL", ex.message ?: "connect failed", ex)
                     crash.record(ex, mapOf("reason" to "connect failed", "stage" to reason))
-                    logger.e("ConnectionManager", "connect failed ($reason)", tr = ex)
+                    logger.e("ConnectionManager", "connect failed ($reason)", throwable = ex)
                     _events.tryEmit(TransportEvent.ErrorOccurred(err))
 
                     // اگر کاربر هنوز اتصال می‌خواهد، reconnect را شروع کن

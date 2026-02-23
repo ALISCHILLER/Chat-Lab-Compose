@@ -8,11 +8,20 @@ interface AppLogger {
         context: Map<String, String> = emptyMap(),
         throwable: Throwable? = null
     )
-
-    fun d(tag: String, msg: String, ctx: Map<String, String> = emptyMap()) = log(LogLevel.DEBUG, tag, msg, ctx)
-    fun i(tag: String, msg: String, ctx: Map<String, String> = emptyMap()) = log(LogLevel.INFO, tag, msg, ctx)
-    fun w(tag: String, msg: String, ctx: Map<String, String> = emptyMap(), tr: Throwable? = null) =
-        log(LogLevel.WARN, tag, msg, ctx, tr)
-    fun e(tag: String, msg: String, ctx: Map<String, String> = emptyMap(), tr: Throwable? = null) =
-        log(LogLevel.ERROR, tag, msg, ctx, tr)
 }
+
+// Extension functions for convenience
+fun AppLogger.v(tag: String, message: String, context: Map<String, String> = emptyMap(), throwable: Throwable? = null) =
+    log(LogLevel.VERBOSE, tag, message, context, throwable)
+
+fun AppLogger.d(tag: String, message: String, context: Map<String, String> = emptyMap(), throwable: Throwable? = null) =
+    log(LogLevel.DEBUG, tag, message, context, throwable)
+
+fun AppLogger.i(tag: String, message: String, context: Map<String, String> = emptyMap(), throwable: Throwable? = null) =
+    log(LogLevel.INFO, tag, message, context, throwable)
+
+fun AppLogger.w(tag: String, message: String, context: Map<String, String> = emptyMap(), throwable: Throwable? = null) =
+    log(LogLevel.WARN, tag, message, context, throwable)
+
+fun AppLogger.e(tag: String, message: String, context: Map<String, String> = emptyMap(), throwable: Throwable? = null) =
+    log(LogLevel.ERROR, tag, message, context, throwable)

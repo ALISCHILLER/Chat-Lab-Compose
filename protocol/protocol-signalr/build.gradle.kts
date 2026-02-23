@@ -23,12 +23,18 @@ android {
 dependencies {
     implementation(project(":core:core-domain"))
     implementation(project(":core:core-protocol-api"))
+    implementation(project(":core:core-data"))
+    implementation(project(":core:core-common")) // For AppScope
+
     implementation(libs.kotlinx.coroutines.core)
 
     // SignalR
     implementation(libs.signalr)
-    implementation("org.slf4j:slf4j-android:1.7.36")
+    implementation(libs.slf4j.android)
+
+    // OkHttp for transport
+    implementation(libs.okhttp)
 
     // Koin for DI
-    implementation(libs.koin.android)
+    implementation(libs.koin.core)
 }

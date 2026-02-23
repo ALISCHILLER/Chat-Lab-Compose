@@ -23,11 +23,14 @@ android {
 dependencies {
     implementation(project(":core:core-domain"))
     implementation(project(":core:core-protocol-api"))
+    implementation(project(":core:core-data")) // For ProtocolBinding
+
     implementation(libs.kotlinx.coroutines.core)
 
     // Socket.IO
-    implementation("io.socket:socket.io-client:2.1.0")
+    implementation(libs.socketio.client)
+    implementation(libs.okhttp)
 
     // Koin for DI
-    implementation(libs.koin.android)
+    implementation(libs.koin.core)
 }

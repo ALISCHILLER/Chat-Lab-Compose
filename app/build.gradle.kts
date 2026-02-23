@@ -32,7 +32,19 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
-    
+
+    buildTypes {
+        debug {
+            isMinifyEnabled = false
+            buildConfigField("String", "MIN_LOG_LEVEL", "\"DEBUG\"")
+        }
+        release {
+            isMinifyEnabled = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            buildConfigField("String", "MIN_LOG_LEVEL", "\"INFO\"")
+        }
+    }
+
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }

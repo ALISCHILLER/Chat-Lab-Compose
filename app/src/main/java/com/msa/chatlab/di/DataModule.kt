@@ -29,6 +29,9 @@ import com.msa.chatlab.core.data.repository.RoomProfileRepository
 import com.msa.chatlab.core.data.telemetry.TelemetryLogger
 import com.msa.chatlab.core.domain.repository.MessageRepository
 import com.msa.chatlab.core.nativebridge.device.AndroidDeviceInfoProvider
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
@@ -50,6 +53,7 @@ val DataModule = module {
     single { ProtocolRegistry(getAll()) }
     single { ProtocolResolver(get(), get()) }
 
+    single { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
     single { ConnectionLogStore() }
     single { ConnectionLogBinder(get(), get(), get()) }
 
@@ -66,6 +70,8 @@ val DataModule = module {
 
     // message binder
     single { TransportMessageBinder(get(), get(), get(), get(), get(), get(), get()) }
+
+
 
     // lab dependencies
     single<DeviceInfoProvider> { AndroidDeviceInfoProvider(androidContext()) }

@@ -2,9 +2,22 @@ package com.msa.chatlab.core.observability.log
 
 import android.util.Log
 
-class LogcatLogger : AppLogger {
+class LogcatLogger(minLogLevelStr: String) : AppLogger {
+
+    private val minLogLevel: LogLevel = try {
+        LogLevel.valueOf(minLogLevelStr)
+    } catch (e: Exception) {
+        LogLevel.DEBUG // Default to DEBUG if parsing fails
+    }
+
     override fun log(level: LogLevel, tag: String, message: String, context: Map<String, String>, throwable: Throwable?) {
-        val ctx = if (context.isEmpty()) "" else " | ctx=$context"
+        // Only log if the level is equal to or higher than the minimum configured level.
+        if (level.ordinal < minLogLevel.ordinal) {
+            return
+        }
+
+        val maskedContext = mask(context)
+        val ctx = if (maskedContext.isEmpty()) "" else " | ctx=$maskedContext"
         val msg = message + ctx
 
         when (level) {

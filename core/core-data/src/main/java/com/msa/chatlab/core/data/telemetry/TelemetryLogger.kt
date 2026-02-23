@@ -1,6 +1,7 @@
 package com.msa.chatlab.core.data.telemetry
 
 import com.msa.chatlab.core.observability.log.AppLogger
+import com.msa.chatlab.core.observability.log.i
 
 class TelemetryLogger(private val logger: AppLogger) {
 
