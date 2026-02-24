@@ -46,7 +46,14 @@ val DataModule = module {
     single<MessageRepository> { RoomMessageRepository(get()) }
 
     // active profile
-    single<ActiveProfileStore> { DataStoreActiveProfileStore(androidContext(), get()) }
+    single<ActiveProfileStore> {
+        DataStoreActiveProfileStore(
+            context = androidContext(),
+            profileRepository = get(),
+            appScope = get(),
+            dispatchers = get(),
+        )
+    }
     single { ProfileManager(get(), get()) }
 
     // protocols & connection
@@ -70,8 +77,6 @@ val DataModule = module {
 
     // message binder
     single { TransportMessageBinder(get(), get(), get(), get(), get(), get(), get()) }
-
-
 
     // lab dependencies
     single<DeviceInfoProvider> { AndroidDeviceInfoProvider(androidContext()) }

@@ -6,11 +6,11 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.msa.chatlab.core.data.manager.ProfileManager
+import com.msa.chatlab.core.common.concurrency.AppScope
+import com.msa.chatlab.core.common.concurrency.DispatcherProvider
+import com.msa.chatlab.core.data.repository.ProfileRepository
 import com.msa.chatlab.core.domain.model.Profile
 import com.msa.chatlab.core.domain.value.ProfileId
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,7 +21,9 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 
 class DataStoreActiveProfileStore(
     private val context: Context,
-    private val profileManager: Lazy<ProfileManager> // Use Lazy to break the dependency cycle
+    private val profileRepository: ProfileRepository,
+    private val appScope: AppScope,
+    private val dispatchers: DispatcherProvider,
 ) : ActiveProfileStore {
 
     private val _activeProfile = MutableStateFlow<Profile?>(null)
@@ -29,11 +31,11 @@ class DataStoreActiveProfileStore(
 
     init {
         // On init, read from datastore and set the active profile
-        CoroutineScope(Dispatchers.IO).launch {
+        // NOTE: We intentionally depend on ProfileRepository (not ProfileManager) to avoid DI cycles.
+        appScope.scope.launch(dispatchers.io) {
             val activeProfileId = getActiveProfileId()
             if (activeProfileId != null) {
-                val profile = profileManager.value.getProfile(activeProfileId)
-                _activeProfile.value = profile
+                _activeProfile.value = profileRepository.getById(activeProfileId.value)
             }
         }
     }
@@ -50,7 +52,7 @@ class DataStoreActiveProfileStore(
 
     override fun setActive(profile: Profile?) {
         _activeProfile.value = profile
-        CoroutineScope(Dispatchers.IO).launch {
+        appScope.scope.launch(dispatchers.io) {
             context.dataStore.edit {
                 if (profile != null) {
                     it[KEY_ACTIVE_PROFILE_ID] = profile.id.value
