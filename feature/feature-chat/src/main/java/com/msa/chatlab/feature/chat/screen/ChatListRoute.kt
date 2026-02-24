@@ -20,7 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.collectAsState
 import com.msa.chatlab.core.designsystem.component.EmptyState
 import com.msa.chatlab.core.designsystem.component.SectionCard
 import com.msa.chatlab.core.designsystem.theme.LocalSpacing
@@ -34,7 +34,7 @@ fun ChatListRoute(
     onOpen: (String) -> Unit,
 ) {
     val vm: ChatListViewModel = koinViewModel()
-    val st by vm.state.collectAsStateWithLifecycle()
+    val st by vm.state.collectAsState()
     ChatListScreen(
         padding = padding,
         query = st.query,
