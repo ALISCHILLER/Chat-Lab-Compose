@@ -14,8 +14,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.msa.chatlab.core.common.ui.components.SectionCard
-
+import com.msa.chatlab.core.designsystem.component.SectionCard
+import com.msa.chatlab.core.designsystem.theme.LocalSpacing
 import com.msa.chatlab.core.storage.entity.RunEntity
 
 @Composable
@@ -40,7 +40,8 @@ fun LabHistoryPanel(
                 ) {
                     Column(Modifier.padding(s.lg), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(r.scenarioPreset, style = MaterialTheme.typography.titleMedium)
-                        Text("protocol=${r.protocolType} • started=${r.startedAt}",
+                        Text(
+                            "protocol=${r.protocolType} • started=${r.startedAt}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

@@ -73,6 +73,9 @@ dependencies {
     // Room (used by app DI module)
     implementation(libs.room.runtime)
 
+    // ✅ Design system (needed by MainActivity + wrappers)
+    implementation(project(":core:core-designsystem"))
+
     // Feature modules
     implementation(project(":feature:feature-settings"))
     implementation(project(":feature:feature-lab"))

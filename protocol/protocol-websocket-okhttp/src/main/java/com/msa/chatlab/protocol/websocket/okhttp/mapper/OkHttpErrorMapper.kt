@@ -8,9 +8,9 @@ object OkHttpErrorMapper {
 
     fun map(t: Throwable): TransportError {
         return when (t) {
-            is UnknownHostException -> TransportError("NETWORK", "Unknown host", t)
-            is SocketTimeoutException -> TransportError("TIMEOUT", "Timeout", t)
-            else -> TransportError("UNKNOWN", t.message ?: "Unknown error", t)
+            is UnknownHostException -> TransportError.ConnectionFailed("NETWORK: Unknown host", t)
+            is SocketTimeoutException -> TransportError.ConnectionFailed("TIMEOUT: Timeout", t)
+            else -> TransportError.Other("UNKNOWN: " + (t.message ?: "Unknown error"), t)
         }
     }
 }

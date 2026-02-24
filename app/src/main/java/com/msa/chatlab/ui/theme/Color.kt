@@ -2,10 +2,16 @@ package com.msa.chatlab.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+@Deprecated("Use core-designsystem colors")
+val Purple80: Color get() = com.msa.chatlab.core.designsystem.theme.Purple80
+@Deprecated("Use core-designsystem colors")
+val PurpleGrey80: Color get() = com.msa.chatlab.core.designsystem.theme.PurpleGrey80
+@Deprecated("Use core-designsystem colors")
+val Pink80: Color get() = com.msa.chatlab.core.designsystem.theme.Pink80
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+@Deprecated("Use core-designsystem colors")
+val Purple40: Color get() = com.msa.chatlab.core.designsystem.theme.Purple40
+@Deprecated("Use core-designsystem colors")
+val PurpleGrey40: Color get() = com.msa.chatlab.core.designsystem.theme.PurpleGrey40
+@Deprecated("Use core-designsystem colors")
+val Pink40: Color get() = com.msa.chatlab.core.designsystem.theme.Pink40

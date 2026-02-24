@@ -21,9 +21,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.msa.chatlab.core.common.ui.components.EmptyState
-import com.msa.chatlab.core.common.ui.components.SectionCard
-import com.msa.chatlab.core.common.theme.LocalSpacing
+import com.msa.chatlab.core.designsystem.component.EmptyState
+import com.msa.chatlab.core.designsystem.component.SectionCard
+import com.msa.chatlab.core.designsystem.theme.LocalSpacing
 import com.msa.chatlab.core.domain.model.ConversationRow
 import com.msa.chatlab.feature.chat.vm.ChatListViewModel
 import org.koin.androidx.compose.koinViewModel

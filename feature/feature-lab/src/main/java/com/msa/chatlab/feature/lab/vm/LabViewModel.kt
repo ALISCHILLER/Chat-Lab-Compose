@@ -70,7 +70,7 @@ class LabViewModel(
         val st = _uiState.value.progress.status
         if (st == RunProgress.Status.Running || st == RunProgress.Status.Stopping) return
 
-        val scenario = preset.toDataScenario()
+        val scenario = toDataScenario(preset)
         _uiState.update { it.copy(lastPreset = preset) }
         startScenarioDirect(scenario)
     }

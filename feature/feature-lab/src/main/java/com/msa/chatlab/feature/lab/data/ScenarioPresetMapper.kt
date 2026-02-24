@@ -1,11 +1,19 @@
 package com.msa.chatlab.feature.lab.data
 
+import com.msa.chatlab.core.domain.model.Scenario
+import com.msa.chatlab.core.domain.model.ScenarioPreset
+
 /**
- * ⚠️ این فایل قبلاً به com.msa.chatlab.feature.lab.state.ScenarioPreset اشاره می‌کرد که وجود ندارد.
- * برای جلوگیری از compile error، فعلاً عمداً خالی/غیرفعال شد.
- *
- * ✅ Mapper اصلی:
+ * ✅ Backward-compatible wrapper.
+ * Canonical mapper:
  * com.msa.chatlab.feature.lab.mapper.ScenarioPresetMapper
- *
- * پیشنهاد: این فایل را حذف کن.
  */
+@Deprecated(
+    message = "Moved to com.msa.chatlab.feature.lab.mapper.toDataScenario",
+    replaceWith = ReplaceWith(
+        "this.toDataScenario()",
+        "com.msa.chatlab.feature.lab.mapper.toDataScenario"
+    )
+)
+fun ScenarioPreset.toDataScenario(): Scenario = 
+    com.msa.chatlab.feature.lab.mapper.toDataScenario(this)

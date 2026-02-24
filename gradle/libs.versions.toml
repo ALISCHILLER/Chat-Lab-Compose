@@ -20,6 +20,7 @@ paho = "1.2.5"
 socketio = "2.1.0"
 signalr = "8.0.0"
 slf4j = "1.7.36"
+timber = "5.0.1"
 
 junit = "4.13.2"
 androidx-test-ext = "1.1.5"
@@ -62,6 +63,7 @@ paho-mqtt = { group = "org.eclipse.paho", name = "org.eclipse.paho.client.mqttv3
 socketio-client = { group = "io.socket", name = "socket.io-client", version.ref = "socketio" }
 signalr = { group = "com.microsoft.signalr", name = "signalr", version.ref = "signalr" }
 slf4j-android = { group = "org.slf4j", name = "slf4j-android", version.ref = "slf4j" }
+timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 
 # Dependencies for build-logic
 android-gradle-plugin = { group = "com.android.tools.build", name = "gradle", version.ref = "agp" }

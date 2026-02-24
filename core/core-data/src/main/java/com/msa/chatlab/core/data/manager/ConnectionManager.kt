@@ -180,7 +180,7 @@ class ConnectionManager(
             logger.i("ConnectionManager", "connectInternal($reason)")
             runCatching { t.connect() }
                 .onFailure { ex ->
-                    val err = TransportError("CONNECT_FAIL", ex.message ?: "connect failed", ex)
+                    val err = TransportError.ConnectionFailed("CONNECT_FAIL: ${ex.message ?: "connect failed"}", ex)
                     crash.record(ex, mapOf("reason" to "connect failed", "stage" to reason))
                     logger.e("ConnectionManager", "connect failed ($reason)", throwable = ex)
                     _events.tryEmit(TransportEvent.ErrorOccurred(err))

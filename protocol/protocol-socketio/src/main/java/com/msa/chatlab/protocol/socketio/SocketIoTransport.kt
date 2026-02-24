@@ -71,7 +71,7 @@ class SocketIoTransport(
         newSocket.on(Socket.EVENT_CONNECT_ERROR) { args ->
             val reason = (args.firstOrNull() as? Exception)?.message ?: "Unknown connect error"
             _connectionState.value = ConnectionState.Disconnected(reason)
-            _events.tryEmit(TransportEvent.ErrorOccurred(TransportError("SOCKETIO_CONNECT_ERROR", reason)))
+            _events.tryEmit(TransportEvent.ErrorOccurred(TransportError.ConnectionFailed(reason)))
         }
 
         cfg.events.forEach { eventName ->

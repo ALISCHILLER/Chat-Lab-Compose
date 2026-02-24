@@ -23,18 +23,21 @@ android {
 dependencies {
     implementation(project(":core:core-domain"))
     implementation(project(":core:core-protocol-api"))
-    implementation(project(":core:core-data"))
-    implementation(project(":core:core-common")) // For AppScope
+    implementation(project(":core:core-data")) // Needed for decodeToTransportEvent
 
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.rx2) // For RxJava 2 support used by SignalR
 
     // SignalR
     implementation(libs.signalr)
-    implementation(libs.slf4j.android)
+    implementation(libs.slf4j.android) // SignalR uses slf4j
 
-    // OkHttp for transport
+    // OkHttp for transport (SignalR dependency)
     implementation(libs.okhttp)
 
     // Koin for DI
     implementation(libs.koin.core)
+
+    // Logging
+    implementation(libs.timber)
 }

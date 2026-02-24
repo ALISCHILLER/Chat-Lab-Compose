@@ -3,15 +3,49 @@ package com.msa.chatlab.feature.lab.mapper
 import com.msa.chatlab.core.domain.model.Scenario
 import com.msa.chatlab.core.domain.model.ScenarioPreset
 
-fun ScenarioPreset.toDataScenario(): Scenario {
-    return when (this) {
-        ScenarioPreset.Stable -> Scenario("Stable", 60, 10, 1024, "steady")
-        ScenarioPreset.Intermittent -> Scenario("Intermittent", 60, 5, 1024, "intermittent")
-        ScenarioPreset.OfflineBurst -> Scenario("Offline Burst", 60, 20, 1024, "offline_burst")
-        ScenarioPreset.Lossy -> Scenario("Lossy", 60, 10, 1024, "lossy")
-        ScenarioPreset.LoadBurst -> Scenario("Load Burst", 60, 100, 1024, "burst")
-
-        // ✅ قبلا TODO → کرش قطعی
-        ScenarioPreset.Custom -> Scenario("Custom", 30, 8, 512, "steady")
+fun toDataScenario(preset: ScenarioPreset): Scenario {
+    return when (preset) {
+        ScenarioPreset.Stable -> Scenario(
+            name = "Stable Load",
+            durationSec = 60,
+            rps = 1,
+            payloadBytes = 256,
+            pattern = "steady"
+        )
+        ScenarioPreset.Intermittent -> Scenario(
+            name = "Intermittent Connectivity",
+            durationSec = 120,
+            rps = 1,
+            payloadBytes = 128,
+            pattern = "intermittent"
+        )
+        ScenarioPreset.OfflineBurst -> Scenario(
+            name = "Offline Burst",
+            durationSec = 30,
+            rps = 10,
+            payloadBytes = 1024,
+            pattern = "burst"
+        )
+        ScenarioPreset.Lossy -> Scenario(
+            name = "Lossy Network",
+            durationSec = 60,
+            rps = 2,
+            payloadBytes = 64,
+            pattern = "steady"
+        )
+        ScenarioPreset.LoadBurst -> Scenario(
+            name = "Load Burst",
+            durationSec = 15,
+            rps = 20,
+            payloadBytes = 512,
+            pattern = "burst"
+        )
+        ScenarioPreset.Custom -> Scenario(
+            name = "Custom",
+            durationSec = 60,
+            rps = 1,
+            payloadBytes = 128,
+            pattern = "steady"
+        )
     }
 }

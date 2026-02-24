@@ -42,7 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.msa.chatlab.core.common.theme.LocalSpacing
+import com.msa.chatlab.core.designsystem.theme.LocalSpacing
 import com.msa.chatlab.core.domain.model.ChatMessage
 import com.msa.chatlab.core.domain.model.MessageDirection
 import com.msa.chatlab.feature.chat.vm.ChatThreadUiState

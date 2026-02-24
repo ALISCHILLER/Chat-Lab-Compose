@@ -40,7 +40,8 @@ fun ChatLabTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
-        shapes = Shapes,
-        content = content
-    )
+        shapes = Shapes
+    ) {
+        ProvideSpacing(content = content)
+    }
 }

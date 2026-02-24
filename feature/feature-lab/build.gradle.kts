@@ -39,6 +39,7 @@ dependencies {
     implementation(libs.koin.android)
     implementation(libs.koin.compose)
 
+    implementation(project(":core:core-designsystem"))
     implementation(project(":core:core-common"))
     implementation(project(":core:core-data"))
     implementation(project(":core:core-domain"))
