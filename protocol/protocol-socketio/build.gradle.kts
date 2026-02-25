@@ -10,4 +10,5 @@ dependencies {
     implementation(project(":core:core-protocol-api"))
     implementation(libs.socketio.client)
     implementation(libs.koin.core)
+    implementation(libs.kotlinx.coroutines.core)
 }

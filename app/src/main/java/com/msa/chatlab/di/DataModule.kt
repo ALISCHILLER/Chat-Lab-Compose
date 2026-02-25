@@ -21,7 +21,6 @@ import com.msa.chatlab.core.data.outbox.OutboxProcessor
 import com.msa.chatlab.core.data.outbox.OutboxQueue
 import com.msa.chatlab.core.data.outbox.RoomOutboxQueue
 import com.msa.chatlab.core.data.registry.ProtocolRegistry
-import com.msa.chatlab.core.data.registry.ProtocolResolver
 import com.msa.chatlab.core.data.repository.ProfileRepository
 import com.msa.chatlab.core.data.repository.RoomMessageRepository
 import com.msa.chatlab.core.data.repository.RoomProfileRepository
@@ -58,12 +57,11 @@ val DataModule = module {
 
     // protocols & connection
     single { ProtocolRegistry(getAll()) }
-    single { ProtocolResolver(get(), get()) }
     single {
         ConnectionManager(
             appScope = get(),
             activeProfileStore = get(),
-            resolver = get(),
+            protocolRegistry = get(),
             logger = get(),
             crash = get()
         )

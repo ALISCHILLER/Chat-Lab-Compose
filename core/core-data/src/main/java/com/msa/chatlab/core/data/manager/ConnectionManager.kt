@@ -2,7 +2,7 @@ package com.msa.chatlab.core.data.manager
 
 import com.msa.chatlab.core.common.concurrency.AppScope
 import com.msa.chatlab.core.common.util.Backoff
-import com.msa.chatlab.core.data.registry.ProtocolResolver
+import com.msa.chatlab.core.data.registry.ProtocolRegistry
 import com.msa.chatlab.core.domain.model.ReconnectBackoffMode
 import com.msa.chatlab.core.observability.crash.CrashReporter
 import com.msa.chatlab.core.observability.log.AppLogger
@@ -24,7 +24,7 @@ import com.msa.chatlab.core.data.active.ActiveProfileStore
 class ConnectionManager(
     private val appScope: AppScope,
     private val activeProfileStore: ActiveProfileStore,
-    private val resolver: ProtocolResolver,
+    private val protocolRegistry: ProtocolRegistry,
     private val logger: AppLogger,
     private val crash: CrashReporter
 ) {
@@ -60,7 +60,7 @@ class ConnectionManager(
                     // If there's a new profile, resolve and set up its transport
                     if (profile != null) {
                         try {
-                            _transport.value = resolver.resolveCurrentTransport()
+                            _transport.value = protocolRegistry.create(profile)
                             logger.i(this, "Transport resolved for ${profile.name}")
                         } catch (e: Exception) {
                             logger.e(this, e, "Failed to resolve transport for ${profile.name}")
@@ -81,18 +81,23 @@ class ConnectionManager(
             scope.launch { disconnect() }
         }
     }
-
+    suspend fun prepareTransport() {
+        connectMutex.withLock {
+            val profile = activeProfileStore.getActiveNow()
+            _transport.value = profile?.let { protocolRegistry.create(it) }
+        }
+    }
     suspend fun connect() {
         connectMutex.withLock {
             if (_simulateOffline.value) {
                 logger.i(this, "Connect ignored: Offline simulation is active")
-                _events.tryEmit(TransportEvent.Error("Simulating offline"))
+                _events.tryEmit(TransportEvent.ErrorOccurred(TransportError.NotConnected("Simulating offline")))
                 return
             }
             val currentTransport = _transport.value
             if (currentTransport == null) {
                 logger.e(this, "Connect failed: No active transport")
-                _events.tryEmit(TransportEvent.Error("No active profile/transport"))
+                _events.tryEmit(TransportEvent.ErrorOccurred(TransportError.NotConnected("No active profile/transport")))
                 return
             }
             if (_connectionState.value is ConnectionState.Connected || _connectionState.value is ConnectionState.Connecting) {
@@ -113,7 +118,7 @@ class ConnectionManager(
                 currentTransport.events.collect { _events.tryEmit(it) }
             }
             statsFanoutJob = scope.launch {
-                currentTransport.stats.collect { _stats.tryEmit(it) }
+                currentTransport.stats.collect { _stats.value = it }
             }
 
             scope.launch {
@@ -122,7 +127,7 @@ class ConnectionManager(
                     logger.i(this, "Connection successful")
                 } catch (e: Exception) {
                     logger.e(this, e, "Connection failed")
-                    _events.tryEmit(TransportEvent.Error(e.message ?: "Connection error"))
+                    _events.tryEmit(TransportEvent.ErrorOccurred(TransportError.ConnectionFailed(e.message, e)))
                     _connectionState.value = ConnectionState.Disconnected("Connection failed: ${e.message}")
                     scheduleReconnect()
                 }

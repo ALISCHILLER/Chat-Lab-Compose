@@ -7,6 +7,13 @@ object TelemetryHeaders {
     const val SPAN_ID = "x-span-id"
     const val PARENT_SPAN_ID = "x-parent-span-id"
     const val IDEMPOTENCY_KEY = "x-idempotency-key"
+
+    fun create(ctx: TraceContext): Map<String, String> = buildMap {
+        this[TRACE_ID] = ctx.traceId
+        this[SPAN_ID] = ctx.spanId
+        ctx.parentSpanId?.let { this[PARENT_SPAN_ID] = it }
+        this[IDEMPOTENCY_KEY] = ctx.traceId
+    }
 }
 
 data class TraceContext(
@@ -16,6 +23,8 @@ data class TraceContext(
 )
 
 object Trace {
+    fun start(name: String): TraceContext = newRoot()
+
     fun newRoot(): TraceContext = TraceContext(
         traceId = uuidNoDash(),
         spanId = spanId(),

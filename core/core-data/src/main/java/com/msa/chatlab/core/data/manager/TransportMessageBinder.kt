@@ -2,7 +2,6 @@ package com.msa.chatlab.core.data.manager
 
 import com.msa.chatlab.core.data.ack.AckTracker
 import com.msa.chatlab.core.data.dedup.DedupStore
-import com.msa.chatlab.core.data.telemetry.TelemetryHeaders
 import com.msa.chatlab.core.data.telemetry.TelemetryLogger
 import com.msa.chatlab.core.data.util.HeaderJson
 import com.msa.chatlab.core.domain.model.MessageStatus
@@ -48,20 +47,22 @@ class TransportMessageBinder(
         val profile = activeProfileStore.getActiveNow() ?: return
         val envelope = ev.payload.envelope
 
-        if (dedupStore.isDuplicate(profile.id.value, envelope.messageId.value)) return
+        if (!dedupStore.shouldProcess("${profile.id.value}:${envelope.messageId.value}")) return
 
         // persist IN message
         val entity = MessageEntity(
             profileId = profile.id.value,
             messageId = envelope.messageId.value,
-            isOutgoing = false,
+            direction = "IN",
             destination = "local", // or parse from payload if available
             status = MessageStatus.Received.name,
             text = envelope.body.decodeToString(), // assuming text
-            timestamp = envelope.createdAt.value,
-            headers = HeaderJson.encode(envelope.headers)
+            createdAt = envelope.createdAt.value,
+            contentType = envelope.contentType,
+            headersJson = HeaderJson.encode(envelope.headers),
+            updatedAt = System.currentTimeMillis()
         )
-        messageDao.insert(entity)
+        messageDao.upsert(entity)
 
         telemetryLogger.onMessageReceived(envelope.headers)
     }

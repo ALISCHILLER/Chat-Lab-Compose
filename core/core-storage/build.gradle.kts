@@ -1,5 +1,6 @@
 plugins {
     id("com.msa.chatlab.android.library")
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -13,4 +14,8 @@ dependencies {
     implementation(libs.kotlinx.datetime)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.koin.core)
+    implementation(libs.koin.android)
+    implementation(libs.gson)
+
+    ksp(libs.androidx.room.compiler)
 }

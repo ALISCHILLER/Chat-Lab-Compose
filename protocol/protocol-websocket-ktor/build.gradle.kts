@@ -18,7 +18,6 @@ android {
 dependencies {
     implementation(project(":core:core-domain"))
     implementation(project(":core:core-protocol-api"))
-    implementation(project(":core:core-data")) // For ProtocolBinding
 
     implementation(libs.kotlinx.coroutines.core)
 

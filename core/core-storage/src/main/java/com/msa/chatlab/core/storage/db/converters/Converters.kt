@@ -3,7 +3,7 @@ package com.msa.chatlab.core.storage.db.converters
 import androidx.room.TypeConverter
 import com.google.gson.Gson
 import com.msa.chatlab.core.domain.model.Profile
-import com.msa.chatlab.core.storage.entity.OutboxStatus
+import com.msa.chatlab.core.domain.model.OutboxStatus
 
 class Converters {
 

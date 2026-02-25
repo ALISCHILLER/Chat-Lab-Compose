@@ -46,9 +46,9 @@ class ProfileManager(
     }
 
     suspend fun delete(id: ProfileId) {
-        repo.delete(id.value)
+        repo.deleteById(id.value)
         if (activeStore.activeProfile.value?.id == id) {
-            activeStore.clearActive()
+            activeStore.clear()
         }
     }
 }

@@ -11,4 +11,6 @@ dependencies {
     implementation(libs.signalr)
     implementation(libs.slf4j.android)
     implementation(libs.koin.core)
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.timber)
 }
