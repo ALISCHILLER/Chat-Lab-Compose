@@ -1,14 +1,11 @@
 package com.msa.chatlab.core.data.outbox
 
 import com.msa.chatlab.core.common.util.Backoff
-import com.msa.chatlab.core.data.ack.AckTracker
 import com.msa.chatlab.core.data.codec.WirePayloadCodec
 import com.msa.chatlab.core.data.manager.ConnectionManager
 import com.msa.chatlab.core.data.telemetry.TelemetryHeaders
 import com.msa.chatlab.core.data.telemetry.TelemetryLogger
 import com.msa.chatlab.core.data.util.HeaderJson
-import com.msa.chatlab.core.domain.model.AckStrategy
-import com.msa.chatlab.core.domain.model.DeliverySemantics
 import com.msa.chatlab.core.domain.model.MessageStatus
 import com.msa.chatlab.core.protocol.api.contract.ConnectionState
 import com.msa.chatlab.core.protocol.api.payload.Envelope
@@ -25,7 +22,6 @@ class OutboxProcessor(
     private val activeProfileStore: ActiveProfileStore,
     private val messageDao: MessageDao,
     private val wireCodec: WirePayloadCodec,
-    private val ackTracker: AckTracker,
     private val telemetryLogger: TelemetryLogger
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -38,7 +34,7 @@ class OutboxProcessor(
                 while (isActive) {
                     val p = activeProfileStore.getActiveNow()
                     if (p != null) {
-                        outboxQueue.requeueExpiredInflight(p.id.value, p.outboxPolicy.inFlightLeaseMs)
+                        outboxQueue.requeueExpiredInflight(p.id.value, p.outboxPolicy.stallTimeoutMillis)
                     }
                     delay(2_000)
                 }
@@ -73,15 +69,14 @@ class OutboxProcessor(
 
     private suspend fun flushQueue(profileId: String) {
         val profile = activeProfileStore.getActiveNow() ?: return
-        val deliveryPolicy = profile.deliveryPolicy
         val retryPolicy = profile.retryPolicy
         val outboxPolicy = profile.outboxPolicy
 
         while (scope.isActive) {
             val items = outboxQueue.claimPendingBatch(
-                profileId,
-                outboxPolicy.inFlightLeaseMs,
-                outboxPolicy.flushBatchSize
+                profileId = profileId,
+                leaseMs = outboxPolicy.stallTimeoutMillis,
+                limit = 10
             )
             if (items.isEmpty()) {
                 delay(500) // Wait before polling again
@@ -103,28 +98,12 @@ class OutboxProcessor(
 
                     messageDao.updateDelivery(profileId, item.messageId, true, item.attempt, MessageStatus.Sending.name, null, System.currentTimeMillis())
 
-                    if (deliveryPolicy.ackStrategy !is AckStrategy.ApplicationLevel) {
-                        outboxQueue.remove(profileId, item.messageId)
-                    }
-
+                    outboxQueue.remove(profileId, item.messageId)
+                    
                     connectionManager.send(payload)
 
-                    if (deliveryPolicy.ackStrategy !is AckStrategy.ApplicationLevel) {
-                        messageDao.updateDelivery(profileId, item.messageId, false, item.attempt, MessageStatus.Sent.name, null, System.currentTimeMillis())
-                    } else {
-                        val ackTimeoutMs = (deliveryPolicy.ackStrategy as AckStrategy.ApplicationLevel).ackTimeoutMs
-                        val acked = ackTracker.awaitAck(item.messageId, ackTimeoutMs)
-                        if (acked) {
-                            outboxQueue.remove(profileId, item.messageId)
-                            messageDao.updateDelivery(profileId, item.messageId, false, item.attempt, MessageStatus.Delivered.name, null, System.currentTimeMillis())
-                        } else {
-                            val err = "ACK timeout"
-                            val nextAttempt = item.attempt + 1
-                            outboxQueue.updateAttempt(profileId, item.messageId, nextAttempt, OutboxStatus.PENDING, err)
-                            messageDao.updateDelivery(profileId, item.messageId, true, nextAttempt, MessageStatus.Sending.name, err, System.currentTimeMillis())
-                        }
-
-                    }
+                    messageDao.updateDelivery(profileId, item.messageId, false, item.attempt, MessageStatus.Sent.name, null, System.currentTimeMillis())
+                    
                 } catch (e: Exception) {
                     if (e is CancellationException) {
                         outboxQueue.updateAttempt(profileId, item.messageId, item.attempt, OutboxStatus.PENDING, "Job cancelled")
@@ -133,17 +112,11 @@ class OutboxProcessor(
 
                     val err = e.message ?: "Send error"
 
-                    if (deliveryPolicy.semantics == DeliverySemantics.AtMostOnce) {
-                        outboxQueue.remove(profileId, item.messageId)
-                        messageDao.updateDelivery(profileId, item.messageId, false, item.attempt, MessageStatus.Failed.name, err, System.currentTimeMillis())
-                        continue
-                    }
-
                     val nextAttempt = item.attempt + 1
                     outboxQueue.updateAttempt(profileId, item.messageId, nextAttempt, OutboxStatus.PENDING, err)
                     messageDao.updateDelivery(profileId, item.messageId, true, nextAttempt, MessageStatus.Sending.name, err, System.currentTimeMillis())
 
-                    val delayMs = Backoff.exponential(nextAttempt, retryPolicy.initialBackoffMs, retryPolicy.maxBackoffMs, retryPolicy.jitterRatio)
+                    val delayMs = Backoff.fixed(retryPolicy.delayMillis, retryPolicy.jitterRatio)
                     delay(delayMs)
                 }
             }

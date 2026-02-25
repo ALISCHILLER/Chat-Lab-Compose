@@ -54,7 +54,7 @@ class SocketIoTransport(
     }
 
     override suspend fun connect() {
-        if (socket?.isActive == true) return
+        if (socket?.connected() == true) return
 
         _connectionState.value = ConnectionState.Connecting
 
@@ -80,7 +80,7 @@ class SocketIoTransport(
                 val envelope = Envelope(
                     messageId = MessageId(UUID.randomUUID().toString()),
                     createdAt = TimestampMillis(System.currentTimeMillis()),
-                    contentType = "application/json",
+                    contentType = "text/plain",
                     headers = emptyMap(),
                     body = data.toByteArray()
                 )
@@ -106,7 +106,9 @@ class SocketIoTransport(
             payload.envelope.body
         }
 
-        s.emit(payload.destination, data)
+        val cfg = requireConfig()
+        val eventName = payload.destination?.takeIf { it.isNotBlank() } ?: cfg.events.firstOrNull() ?: "message"
+        s.emit(eventName, data)
         _stats.value = _stats.value.copy(bytesSent = _stats.value.bytesSent + payload.envelope.body.size)
         _events.tryEmit(TransportEvent.MessageSent(payload.envelope.messageId.value))
     }

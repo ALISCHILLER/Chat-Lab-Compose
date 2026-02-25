@@ -1,4 +1,5 @@
 plugins {
+    alias(libs.plugins.kotlin.serialization)
     id("com.msa.chatlab.android.library.compose")
 }
 
@@ -13,4 +14,5 @@ dependencies {
     implementation(project(":core:core-common"))
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
+    implementation(libs.kotlinx.serialization.json)
 }

@@ -1,6 +1,7 @@
 plugins {
     id("com.msa.chatlab.android.library")
     alias(libs.plugins.kotlin.android)
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 android {
@@ -23,6 +24,7 @@ android {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.serialization.json)
 
     // DataStore for active profile persistence
     implementation(libs.androidx.datastore.preferences)

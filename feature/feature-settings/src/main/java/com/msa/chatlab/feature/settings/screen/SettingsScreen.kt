@@ -14,19 +14,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.FileDownload
-import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.Divider
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -56,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.msa.chatlab.core.domain.model.CodecMode
 import com.msa.chatlab.core.domain.model.MqttConfig
@@ -66,7 +62,7 @@ import com.msa.chatlab.core.domain.model.SocketIoConfig
 import com.msa.chatlab.core.domain.model.TransportConfig
 import com.msa.chatlab.core.domain.model.WsKtorConfig
 import com.msa.chatlab.core.domain.model.WsOkHttpConfig
-import com.msa.chatlab.feature.settings.component.common.SearchBar
+import com.msa.chatlab.feature.settings.component.editor.PayloadChaosEditor
 import com.msa.chatlab.feature.settings.state.ImportExportUi
 import com.msa.chatlab.feature.settings.state.SettingsUiEvent
 import com.msa.chatlab.feature.settings.state.SettingsUiState
@@ -83,82 +79,53 @@ fun SettingsScreen(
     var menuForId by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(padding),
         topBar = {
-            TopAppBar(
-                title = { Text("Profiles") },
-                actions = {
-                    IconButton(onClick = { onEvent(SettingsUiEvent.OpenImport) }) {
-                        Icon(Icons.Outlined.FileUpload, contentDescription = "Import")
-                    }
-                    IconButton(onClick = { onEvent(SettingsUiEvent.ExportAll) }) {
-                        Icon(Icons.Outlined.FileDownload, contentDescription = "Export all")
-                    }
-                }
-            )
+            TopAppBar(title = { Text("Connection profiles") })
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { onEvent(SettingsUiEvent.NewProfile) }) {
-                Icon(Icons.Outlined.Add, contentDescription = "New")
+                Icon(Icons.Outlined.Add, contentDescription = "Add profile")
             }
         }
-    ) { inner ->
+    ) {
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(inner)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(it)
+                .padding(horizontal = 16.dp)
         ) {
-            SearchBar(
-                query = state.searchQuery,
-                onQueryChange = { onEvent(SettingsUiEvent.SearchChanged(it)) }
-            )
+            Spacer(Modifier.height(16.dp))
 
             if (state.isLoading) {
-                LinearProgressIndicator(Modifier.fillMaxWidth())
+                CircularProgressIndicator()
+            } else if (state.cards.isEmpty()) {
+                Text("No profiles found. Create one with the + button.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(state.cards, key = { it.id }) { card ->
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(state.cards) { card ->
                         ProfileCardModern(
                             card = card,
-                            onClick = { onEvent(SettingsUiEvent.Edit(card.id)) },
+                            onClick = { onEvent(SettingsUiEvent.Apply(card.id)) },
                             onOverflow = { menuForId = card.id }
                         )
 
-                        DropdownMenu(
-                            expanded = menuForId == card.id,
-                            onDismissRequest = { menuForId = null }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Activate") },
-                                enabled = !card.isActive,
-                                onClick = { onEvent(SettingsUiEvent.Apply(card.id)); menuForId = null },
-                                leadingIcon = { Icon(Icons.Outlined.Check, null) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Edit") },
-                                onClick = { onEvent(SettingsUiEvent.Edit(card.id)); menuForId = null },
-                                leadingIcon = { Icon(Icons.Outlined.Edit, null) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Duplicate") },
-                                onClick = { onEvent(SettingsUiEvent.Duplicate(card.id)); menuForId = null },
-                                leadingIcon = { Icon(Icons.Outlined.ContentCopy, null) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Export") },
-                                onClick = { onEvent(SettingsUiEvent.ExportProfile(card.id)); menuForId = null },
-                                leadingIcon = { Icon(Icons.Outlined.FileDownload, null) }
-                            )
-                            Divider()
-                            DropdownMenuItem(
-                                text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
-                                onClick = { onEvent(SettingsUiEvent.RequestDelete(card.id)); menuForId = null },
-                                leadingIcon = { Icon(Icons.Outlined.Delete, null, tint = MaterialTheme.colorScheme.error) }
-                            )
+                        DropdownMenu(expanded = (menuForId == card.id), onDismissRequest = { menuForId = null }) {
+                            DropdownMenuItem(text = { Text("Edit") }, onClick = {
+                                onEvent(SettingsUiEvent.Edit(card.id))
+                                menuForId = null
+                            })
+                            DropdownMenuItem(text = { Text("Duplicate") }, onClick = {
+                                onEvent(SettingsUiEvent.Duplicate(card.id))
+                                menuForId = null
+                            })
+                            DropdownMenuItem(text = { Text("Export") }, onClick = {
+                                onEvent(SettingsUiEvent.ExportProfile(card.id))
+                                menuForId = null
+                            })
+                            DropdownMenuItem(text = { Text("Delete") }, onClick = {
+                                onEvent(SettingsUiEvent.RequestDelete(card.id))
+                                menuForId = null
+                            })
                         }
                     }
                 }
@@ -166,17 +133,13 @@ fun SettingsScreen(
         }
     }
 
-    if (state.pendingDeleteId != null) {
+    state.pendingDeleteId?.let { id ->
         AlertDialog(
             onDismissRequest = { onEvent(SettingsUiEvent.DismissDelete) },
-            confirmButton = {
-                Button(onClick = { onEvent(SettingsUiEvent.ConfirmDelete) }) { Text("Delete") }
-            },
-            dismissButton = {
-                TextButton(onClick = { onEvent(SettingsUiEvent.DismissDelete) }) { Text("Cancel") }
-            },
             title = { Text("Delete profile?") },
-            text = { Text("This action cannot be undone.") }
+            text = { Text("Are you sure you want to delete this profile? This action is irreversible.") },
+            confirmButton = { Button(onClick = { onEvent(SettingsUiEvent.ConfirmDelete) }) { Text("Delete") } },
+            dismissButton = { TextButton(onClick = { onEvent(SettingsUiEvent.DismissDelete) }) { Text("Cancel") } }
         )
     }
 
@@ -207,6 +170,7 @@ fun SettingsScreen(
         ProfileEditorBottomSheet(
             profile = profile,
             supported = state.supportedProtocols,
+            availability = state.protocolAvailability,
             validationErrors = state.validationErrors,
             onChange = { onEvent(SettingsUiEvent.EditorChanged(it)) },
             onSave = { onEvent(SettingsUiEvent.EditorSave) },
@@ -245,6 +209,7 @@ private fun ProfileCardModern(
 private fun ProfileEditorBottomSheet(
     profile: Profile,
     supported: List<ProtocolType>,
+    availability: Map<ProtocolType, Boolean>,
     validationErrors: List<String>,
     onChange: (Profile) -> Unit,
     onSave: () -> Unit,
@@ -278,7 +243,7 @@ private fun ProfileEditorBottomSheet(
 
             when (tab) {
                 0 -> EditorGeneral(profile, onChange)
-                1 -> EditorProtocol(profile, supported, onChange)
+                1 -> EditorProtocol(profile, supported, availability, onChange)
                 2 -> EditorReliability(profile, onChange)
                 3 -> EditorPayloadChaos(profile, onChange)
             }
@@ -325,31 +290,59 @@ private fun EditorGeneral(profile: Profile, onChange: (Profile) -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun EditorProtocol(profile: Profile, supported: List<ProtocolType>, onChange: (Profile) -> Unit) {
+private fun EditorProtocol(
+    profile: Profile,
+    supported: List<ProtocolType>,
+    availability: Map<ProtocolType, Boolean>,
+    onChange: (Profile) -> Unit
+) {
     var expanded by remember { mutableStateOf(false) }
+    val current = profile.protocolType
 
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
         OutlinedTextField(
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(),
-            value = profile.protocolType.name,
+            value = current.displayName(),
             onValueChange = {},
             readOnly = true,
             label = { Text("Protocol") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            supported.forEach { pt ->
-                DropdownMenuItem(
-                    text = { Text(pt.name) },
-                    onClick = {
-                        expanded = false
-                        onChange(profile.copy(protocolType = pt, transportConfig = defaultTransport(pt)))
-                    }
-                )
-            }
+            supported
+                .sortedBy { it.orderIndex() }
+                .forEach { pt ->
+                    val enabled = availability[pt] == true
+                    DropdownMenuItem(
+                        enabled = enabled,
+                        text = {
+                            Column {
+                                Text(pt.displayName())
+                                Text(pt.description(), style = MaterialTheme.typography.bodySmall)
+                            }
+                        },
+                        onClick = {
+                            expanded = false
+                            onChange(profile.copy(protocolType = pt, transportConfig = defaultTransport(pt)))
+                        }
+                    )
+                }
         }
+    }
+
+    val isReady = availability[current] == true
+    if (!isReady) {
+        Spacer(Modifier.height(8.dp))
+        AssistChip(
+            onClick = {},
+            label = { Text("Coming soon: This protocol has not been registered in the app yet") },
+            colors = AssistChipDefaults.assistChipColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        )
+        return
     }
 
     Spacer(Modifier.height(6.dp))
@@ -365,86 +358,44 @@ private fun EditorProtocol(profile: Profile, supported: List<ProtocolType>, onCh
 
 @Composable
 private fun EditorReliability(profile: Profile, onChange: (Profile) -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text("Enable retry")
+        Switch(checked = profile.retryPolicy.enabled, onCheckedChange = { onChange(profile.copy(retryPolicy = profile.retryPolicy.copy(enabled = it))) })
+    }
     OutlinedTextField(
         value = profile.retryPolicy.maxAttempts.toString(),
         onValueChange = { onChange(profile.copy(retryPolicy = profile.retryPolicy.copy(maxAttempts = it.toIntOrNull() ?: profile.retryPolicy.maxAttempts))) },
         label = { Text("Retry max attempts") },
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        enabled = profile.retryPolicy.enabled
     )
     OutlinedTextField(
-        value = profile.retryPolicy.initialBackoffMs.toString(),
-        onValueChange = { onChange(profile.copy(retryPolicy = profile.retryPolicy.copy(initialBackoffMs = it.toLongOrNull() ?: profile.retryPolicy.initialBackoffMs))) },
-        label = { Text("Initial backoff (ms)") },
-        modifier = Modifier.fillMaxWidth()
+        value = profile.retryPolicy.delayMillis.toString(),
+        onValueChange = { onChange(profile.copy(retryPolicy = profile.retryPolicy.copy(delayMillis = it.toLongOrNull() ?: profile.retryPolicy.delayMillis))) },
+        label = { Text("Delay (ms)") },
+        modifier = Modifier.fillMaxWidth(),
+        enabled = profile.retryPolicy.enabled
     )
     OutlinedTextField(
-        value = profile.reconnectPolicy.backoffMs.toString(),
-        onValueChange = { onChange(profile.copy(reconnectPolicy = profile.reconnectPolicy.copy(backoffMs = it.toLongOrNull() ?: profile.reconnectPolicy.backoffMs))) },
-        label = { Text("Reconnect backoff (ms)") },
-        modifier = Modifier.fillMaxWidth()
+        value = profile.retryPolicy.jitterRatio.toString(),
+        onValueChange = { onChange(profile.copy(retryPolicy = profile.retryPolicy.copy(jitterRatio = it.toDoubleOrNull() ?: profile.retryPolicy.jitterRatio))) },
+        label = { Text("Jitter ratio") },
+        modifier = Modifier.fillMaxWidth(),
+        enabled = profile.retryPolicy.enabled
+    )
+}
+
+@Composable
+private fun EditorPayloadChaos(profile: Profile, onChange: (Profile) -> Unit) {
+    PayloadChaosEditor(
+        payloadPolicy = profile.payloadPolicy,
+        chaosPolicy = profile.chaosPolicy,
+        onPayloadChanged = { onChange(profile.copy(payloadPolicy = it)) },
+        onChaosChanged = { onChange(profile.copy(chaosPolicy = it)) }
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun EditorPayloadChaos(profile: Profile, onChange: (Profile) -> Unit) {
-    var codecExpanded by remember { mutableStateOf(false) }
-
-    ExposedDropdownMenuBox(expanded = codecExpanded, onExpandedChange = { codecExpanded = it }) {
-        OutlinedTextField(
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(),
-            value = profile.payloadProfile.codec.name,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Codec") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = codecExpanded) },
-        )
-        ExposedDropdownMenu(expanded = codecExpanded, onDismissRequest = { codecExpanded = false }) {
-            CodecMode.values().forEach { cm ->
-                DropdownMenuItem(
-                    text = { Text(cm.name) },
-                    onClick = {
-                        codecExpanded = false
-                        onChange(profile.copy(payloadProfile = profile.payloadProfile.copy(codec = cm)))
-                    }
-                )
-            }
-        }
-    }
-
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Switch(
-            checked = profile.chaosProfile.enabled,
-            onCheckedChange = { onChange(profile.copy(chaosProfile = profile.chaosProfile.copy(enabled = it))) }
-        )
-        Spacer(Modifier.width(10.dp))
-        Text("Chaos enabled")
-    }
-
-    if (profile.chaosProfile.enabled) {
-        OutlinedTextField(
-            value = profile.chaosProfile.dropRatePercent.toString(),
-            onValueChange = { onChange(profile.copy(chaosProfile = profile.chaosProfile.copy(dropRatePercent = it.toDoubleOrNull() ?: 0.0))) },
-            label = { Text("Drop rate %") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
-            value = profile.chaosProfile.delayMinMs.toString(),
-            onValueChange = { onChange(profile.copy(chaosProfile = profile.chaosProfile.copy(delayMinMs = it.toLongOrNull() ?: 0))) },
-            label = { Text("Delay min (ms)") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
-            value = profile.chaosProfile.delayMaxMs.toString(),
-            onValueChange = { onChange(profile.copy(chaosProfile = profile.chaosProfile.copy(delayMaxMs = it.toLongOrNull() ?: 0))) },
-            label = { Text("Delay max (ms)") },
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
-}
-
 @Composable
 private fun ImportExportDialog(
     title: String,
@@ -475,6 +426,31 @@ private fun ImportExportDialog(
     )
 }
 
+
+private fun ProtocolType.displayName(): String = when (this) {
+    ProtocolType.WS_OKHTTP -> "WebSocket (OkHttp)"
+    ProtocolType.WS_KTOR -> "WebSocket (Ktor)"
+    ProtocolType.MQTT -> "MQTT"
+    ProtocolType.SOCKETIO -> "Socket.IO"
+    ProtocolType.SIGNALR -> "SignalR"
+}
+
+private fun ProtocolType.description(): String = when (this) {
+    ProtocolType.WS_OKHTTP -> "Low-latency WS via OkHttp"
+    ProtocolType.WS_KTOR -> "WS via Ktor client (CIO)"
+    ProtocolType.MQTT -> "Pub/Sub over broker (QoS 0..2)"
+    ProtocolType.SOCKETIO -> "Event-based realtime over Socket.IO"
+    ProtocolType.SIGNALR -> "Microsoft SignalR hub transport"
+}
+
+private fun ProtocolType.orderIndex(): Int = when (this) {
+    ProtocolType.WS_OKHTTP -> 0
+    ProtocolType.WS_KTOR -> 1
+    ProtocolType.MQTT -> 2
+    ProtocolType.SOCKETIO -> 3
+    ProtocolType.SIGNALR -> 4
+}
+
 private fun defaultTransport(pt: ProtocolType): TransportConfig = when (pt) {
     ProtocolType.WS_OKHTTP -> WsOkHttpConfig(endpoint = "wss://echo.websocket.events")
     ProtocolType.WS_KTOR -> WsKtorConfig(endpoint = "wss://echo.websocket.events")
@@ -483,33 +459,142 @@ private fun defaultTransport(pt: ProtocolType): TransportConfig = when (pt) {
     ProtocolType.SIGNALR -> SignalRConfig(endpoint = "https://example.com/chathub", hubMethodName = "Send")
 }
 
+private data class HeaderRow(val key: String, val value: String)
+
+private fun List<HeaderRow>.toHeadersMap(): Map<String, String> =
+    this.map { it.key.trim() to it.value }
+        .filter { it.first.isNotBlank() }
+        .toMap()
+
+@Composable
+private fun HeadersEditor(
+    headers: Map<String, String>,
+    onChanged: (Map<String, String>) -> Unit
+) {
+    var rows by remember(headers) {
+        mutableStateOf(
+            headers.entries.map { HeaderRow(it.key, it.value) }.ifEmpty { listOf(HeaderRow("", "")) }
+        )
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Headers", style = MaterialTheme.typography.titleMedium)
+
+        rows.forEachIndexed { idx, row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = row.key,
+                    onValueChange = {
+                        val n = rows.toMutableList()
+                        n[idx] = n[idx].copy(key = it)
+                        rows = n
+                        onChanged(n.toHeadersMap())
+                    },
+                    label = { Text("Key") },
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedTextField(
+                    value = row.value,
+                    onValueChange = {
+                        val n = rows.toMutableList()
+                        n[idx] = n[idx].copy(value = it)
+                        rows = n
+                        onChanged(n.toHeadersMap())
+                    },
+                    label = { Text("Value") },
+                    modifier = Modifier.weight(1f)
+                )
+
+                IconButton(onClick = {
+                    val n = rows.toMutableList()
+                    if (n.size > 1) n.removeAt(idx) else n[0] = HeaderRow("", "")
+                    rows = n
+                    onChanged(n.toHeadersMap())
+                }) {
+                    Icon(Icons.Outlined.Delete, contentDescription = "Remove header")
+                }
+            }
+        }
+
+        TextButton(onClick = {
+            rows = rows + HeaderRow("", "")
+        }) {
+            Icon(Icons.Outlined.Add, contentDescription = null)
+            Spacer(Modifier.width(6.dp))
+            Text("Add header")
+        }
+    }
+}
+
 @Composable
 private fun WsOkHttpEditorModern(cfg: WsOkHttpConfig, onChanged: (WsOkHttpConfig) -> Unit) {
     OutlinedTextField(cfg.endpoint, { onChanged(cfg.copy(endpoint = it)) }, label = { Text("Endpoint") }, modifier = Modifier.fillMaxWidth())
     OutlinedTextField(cfg.pingIntervalMs.toString(), { onChanged(cfg.copy(pingIntervalMs = it.toLongOrNull() ?: cfg.pingIntervalMs)) }, label = { Text("Ping ms") }, modifier = Modifier.fillMaxWidth())
+    HeadersEditor(cfg.headers) { onChanged(cfg.copy(headers = it)) }
 }
 
 @Composable
 private fun WsKtorEditorModern(cfg: WsKtorConfig, onChanged: (WsKtorConfig) -> Unit) {
     OutlinedTextField(cfg.endpoint, { onChanged(cfg.copy(endpoint = it)) }, label = { Text("Endpoint") }, modifier = Modifier.fillMaxWidth())
+    OutlinedTextField(cfg.pingIntervalMs.toString(), { onChanged(cfg.copy(pingIntervalMs = it.toLongOrNull() ?: cfg.pingIntervalMs)) }, label = { Text("Ping ms") }, modifier = Modifier.fillMaxWidth())
     OutlinedTextField(cfg.connectTimeoutMs.toString(), { onChanged(cfg.copy(connectTimeoutMs = it.toLongOrNull() ?: cfg.connectTimeoutMs)) }, label = { Text("Connect timeout ms") }, modifier = Modifier.fillMaxWidth())
+    HeadersEditor(cfg.headers) { onChanged(cfg.copy(headers = it)) }
 }
 
 @Composable
 private fun MqttEditorModern(cfg: MqttConfig, onChanged: (MqttConfig) -> Unit) {
-    OutlinedTextField(cfg.endpoint, { onChanged(cfg.copy(endpoint = it)) }, label = { Text("Broker endpoint") }, modifier = Modifier.fillMaxWidth())
+    OutlinedTextField(cfg.endpoint, { onChanged(cfg.copy(endpoint = it)) }, label = { Text("Broker endpoint (tcp://host:1883)") }, modifier = Modifier.fill.fillMaxWidth())
     OutlinedTextField(cfg.clientId, { onChanged(cfg.copy(clientId = it)) }, label = { Text("ClientId") }, modifier = Modifier.fillMaxWidth())
     OutlinedTextField(cfg.topic, { onChanged(cfg.copy(topic = it)) }, label = { Text("Topic") }, modifier = Modifier.fillMaxWidth())
+    OutlinedTextField(
+        value = cfg.qos.toString(),
+        onValueChange = { onChanged(cfg.copy(qos = (it.toIntOrNull() ?: cfg.qos).coerceIn(0, 2))) },
+        label = { Text("QoS (0..2)") },
+        modifier = Modifier.fillMaxWidth()
+    )
+
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text("Clean session")
+        Switch(checked = cfg.cleanSession, onCheckedChange = { onChanged(cfg.copy(cleanSession = it)) })
+    }
+
+    OutlinedTextField(
+        value = cfg.username.orEmpty(),
+        onValueChange = { onChanged(cfg.copy(username = it.ifBlank { null })) },
+        label = { Text("Username (optional)") },
+        modifier = Modifier.fillMaxWidth()
+    )
+
+    OutlinedTextField(
+        value = cfg.password.orEmpty(),
+        onValueChange = { onChanged(cfg.copy(password = it.ifBlank { null })) },
+        label = { Text("Password (optional)") },
+        visualTransformation = PasswordVisualTransformation(),
+        modifier = Modifier.fillMaxWidth()
+    )
+
+    HeadersEditor(cfg.headers) { onChanged(cfg.copy(headers = it)) }
 }
 
 @Composable
 private fun SocketIoEditorModern(cfg: SocketIoConfig, onChanged: (SocketIoConfig) -> Unit) {
     OutlinedTextField(cfg.endpoint, { onChanged(cfg.copy(endpoint = it)) }, label = { Text("Endpoint") }, modifier = Modifier.fillMaxWidth())
+    OutlinedTextField(cfg.namespace.orEmpty(), { onChanged(cfg.copy(namespace = it.ifBlank { null })) }, label = { Text("Namespace (optional)") }, modifier = Modifier.fillMaxWidth())
+    OutlinedTextField(cfg.connectPath.orEmpty(), { onChanged(cfg.copy(connectPath = it.ifBlank { null })) }, label = { Text("Connect path (optional, e.g. /socket.io)") }, modifier = Modifier.fillMaxWidth())
     OutlinedTextField(cfg.events.joinToString(","), { onChanged(cfg.copy(events = it.split(",").map { s -> s.trim() }.filter { s -> s.isNotBlank() })) }, label = { Text("Events (csv)") }, modifier = Modifier.fillMaxWidth())
+    HeadersEditor(cfg.headers) { onChanged(cfg.copy(headers = it)) }
 }
 
 @Composable
 private fun SignalREditorModern(cfg: SignalRConfig, onChanged: (SignalRConfig) -> Unit) {
     OutlinedTextField(cfg.endpoint, { onChanged(cfg.copy(endpoint = it)) }, label = { Text("Hub URL") }, modifier = Modifier.fillMaxWidth())
     OutlinedTextField(cfg.hubMethodName, { onChanged(cfg.copy(hubMethodName = it)) }, label = { Text("Hub method") }, modifier = Modifier.fillMaxWidth())
+    OutlinedTextField(
+        value = cfg.transportPreference.name,
+        onValueChange = { },
+        readOnly = true,
+        label = { Text("Transport preference") },
+        modifier = Modifier.fillMaxWidth()
+    )
+    HeadersEditor(cfg.headers) { onChanged(cfg.copy(headers = it)) }
 }

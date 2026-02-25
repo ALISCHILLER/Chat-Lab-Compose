@@ -2,6 +2,7 @@ package com.msa.chatlab.core.data.repository
 
 import com.msa.chatlab.core.data.codec.ProfileJsonCodec
 import com.msa.chatlab.core.domain.model.Profile
+import com.msa.chatlab.core.domain.value.ProfileId
 import com.msa.chatlab.core.storage.dao.ProfileDao
 import com.msa.chatlab.core.storage.entity.ProfileEntity
 import kotlinx.coroutines.flow.Flow
@@ -13,15 +14,15 @@ class RoomProfileRepository(
 ) : ProfileRepository {
 
     override fun observeAll(): Flow<List<Profile>> {
-        return dao.observeAll().map { list -> list.map { codec.decode(it.profileJson) } }
+        return dao.observeAll().map { list -> list.map { codec.fromJson(it.profileJson) } }
     }
 
     override suspend fun getAll(): List<Profile> {
-        return dao.getAll().map { codec.decode(it.profileJson) }
+        return dao.getAll().map { codec.fromJson(it.profileJson) }
     }
 
-    override suspend fun getById(id: String): Profile? {
-        return dao.getById(id)?.let { codec.decode(it.profileJson) }
+    override suspend fun getById(id: ProfileId): Profile? {
+        return dao.getById(id.value)?.let { codec.fromJson(it.profileJson) }
     }
 
     override suspend fun upsert(profile: Profile): Profile {
@@ -29,7 +30,7 @@ class RoomProfileRepository(
         val existing = dao.getById(profile.id.value)
         val createdAt = existing?.createdAt ?: now
 
-        val json = codec.encode(profile)
+        val json = codec.toCompactJson(profile)
         val entity = ProfileEntity(
             id = profile.id.value,
             name = profile.name,
@@ -45,11 +46,11 @@ class RoomProfileRepository(
         return profile
     }
 
-    override suspend fun deleteById(id: String) {
-        dao.deleteById(id)
+    override suspend fun deleteById(id: ProfileId) {
+        dao.deleteById(id.value)
     }
 
     override suspend fun search(query: String): List<Profile> {
-        return dao.search(query).map { codec.decode(it.profileJson) }
+        return dao.search(query).map { codec.fromJson(it.profileJson) }
     }
 }

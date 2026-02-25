@@ -49,10 +49,19 @@ class TransportMessageBinder(
 
         if (!dedupStore.shouldProcess("${profile.id.value}:${envelope.messageId.value}")) return
 
+        val profileId = profile.id.value
+        val messageId = envelope.messageId.value
+
+        // echo servers may return the same messageId; do not overwrite OUT rows with IN rows
+        if (messageDao.getDirection(profileId, messageId) == "OUT") {
+            ackTracker.onAck(messageId)
+            return
+        }
+
         // persist IN message
         val entity = MessageEntity(
-            profileId = profile.id.value,
-            messageId = envelope.messageId.value,
+            profileId = profileId,
+            messageId = messageId,
             direction = "IN",
             destination = "local", // or parse from payload if available
             status = MessageStatus.Delivered.name,

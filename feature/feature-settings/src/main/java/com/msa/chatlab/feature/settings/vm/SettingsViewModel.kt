@@ -8,11 +8,15 @@ import com.msa.chatlab.core.data.manager.ProfileManager
 import com.msa.chatlab.core.data.registry.ProtocolRegistry
 import com.msa.chatlab.core.domain.model.Profile
 import com.msa.chatlab.core.domain.model.ProtocolType
+import com.msa.chatlab.core.domain.model.WsOkHttpConfig
 import com.msa.chatlab.core.domain.value.ProfileId
 import com.msa.chatlab.feature.settings.state.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import org.json.JSONArray
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.jsonObject
 import java.util.UUID
 
 class SettingsViewModel(
@@ -29,7 +33,13 @@ class SettingsViewModel(
     val effects = _effects.asSharedFlow()
 
     init {
-        _state.update { it.copy(supportedProtocols = ProtocolType.values().filter { t -> registry.has(t) }) }
+        val all = ProtocolType.values().toList()
+        _state.update {
+            it.copy(
+                supportedProtocols = all,
+                protocolAvailability = all.associateWith { t -> registry.has(t) }
+            )
+        }
 
         viewModelScope.launch {
             combine(
@@ -45,7 +55,7 @@ class SettingsViewModel(
 
                 val cards = filtered.map {
                     UiProfileCard(
-                        id = it.id.value,
+                        id = it.id,
                         title = it.name.ifBlank { "(No name)" },
                         subtitle = "${it.protocolType.name} • ${it.transportConfig.endpoint}",
                         isActive = (active?.id == it.id)
@@ -60,10 +70,9 @@ class SettingsViewModel(
         }
     }
 
-    fun onEvent(ev: SettingsUiEvent) {
+    fun onEvent(ev: SettingsUiEvent) = viewModelScope.launch {
         when (ev) {
-            is SettingsUiEvent.SearchChanged -> _state.update { it.copy(searchQuery = ev.value) }
-
+            is SettingsUiEvent.SearchQuery -> _state.update { it.copy(searchQuery = ev.query) }
             SettingsUiEvent.NewProfile -> openNew()
             is SettingsUiEvent.Edit -> openEditor(ev.id)
             is SettingsUiEvent.Apply -> apply(ev.id)
@@ -85,20 +94,45 @@ class SettingsViewModel(
             is SettingsUiEvent.EditorChanged -> _state.update { it.copy(editorProfile = ev.profile, validationErrors = emptyList()) }
             SettingsUiEvent.EditorSave -> saveEditor()
             SettingsUiEvent.EditorClose -> _state.update { it.copy(editorProfile = null, editorIsNew = false, validationErrors = emptyList()) }
+            is SettingsUiEvent.SearchQuery -> TODO()
+            SettingsUiEvent.NewProfile -> TODO()
+            is SettingsUiEvent.Edit -> TODO()
+            is SettingsUiEvent.Apply -> TODO()
+            is SettingsUiEvent.Duplicate -> TODO()
+            is SettingsUiEvent.RequestDelete -> TODO()
+            SettingsUiEvent.DismissDelete -> TODO()
+            SettingsUiEvent.ConfirmDelete -> TODO()
+            SettingsUiEvent.OpenImport -> TODO()
+            SettingsUiEvent.CloseImport -> TODO()
+            is SettingsUiEvent.ImportTextChanged -> TODO()
+            SettingsUiEvent.ImportCommit -> TODO()
+            SettingsUiEvent.ExportAll -> TODO()
+            is SettingsUiEvent.ExportProfile -> TODO()
+            SettingsUiEvent.CloseExport -> TODO()
+            is SettingsUiEvent.EditorChanged -> TODO()
+            SettingsUiEvent.EditorSave -> TODO()
+            SettingsUiEvent.EditorClose -> TODO()
         }
     }
 
     private fun openNew() = viewModelScope.launch {
-        val p = profileManager.createDefaultWsOkHttpProfile(
+        val p = Profile(
+            id = ProfileId(UUID.randomUUID().toString()),
             name = "Profile ${UUID.randomUUID().toString().take(4)}",
-            endpoint = "wss://echo.websocket.events"
+            protocolType = ProtocolType.WS_OKHTTP,
+            transportConfig = WsOkHttpConfig(endpoint = "wss://echo.websocket.events")
         )
-        // فقط برای draft در UI، ذخیره واقعی با Save انجام می‌شود:
-        _state.update { it.copy(editorProfile = p.copy(id = ProfileId(UUID.randomUUID().toString())), editorIsNew = true) }
+        _state.update {
+            it.copy(
+                editorProfile = p,
+                editorIsNew = true,
+                validationErrors = emptyList()
+            )
+        }
     }
 
-    private fun openEditor(id: String) = viewModelScope.launch {
-        val p = profileManager.getProfile(ProfileId(id)) ?: return@launch
+    private fun openEditor(id: ProfileId) = viewModelScope.launch {
+        val p = profileManager.getProfile(id) ?: return@launch
         _state.update { it.copy(editorProfile = p, editorIsNew = false, validationErrors = emptyList()) }
     }
 
@@ -122,68 +156,62 @@ class SettingsViewModel(
             }
     }
 
-    private fun apply(id: String) = viewModelScope.launch {
-        val p = profileManager.getProfile(ProfileId(id)) ?: return@launch
-        activeStore.setActive(p)
-        _effects.tryEmit(SettingsUiEffect.Toast("Applied: ${p.name}"))
+    private fun apply(id: ProfileId) = viewModelScope.launch {
+        activeStore.setActive(id)
+        _effects.tryEmit(SettingsUiEffect.Toast("Profile applied"))
     }
 
-    private fun duplicate(id: String) = viewModelScope.launch {
-        val p = profileManager.getProfile(ProfileId(id)) ?: return@launch
-        val copy = p.copy(id = ProfileId(UUID.randomUUID().toString()), name = p.name + " (copy)")
-        profileManager.upsert(copy)
-        _effects.tryEmit(SettingsUiEffect.Toast("Duplicated"))
+    private fun duplicate(id: ProfileId) = viewModelScope.launch {
+        val p = profileManager.getProfile(id)
+        if (p != null) {
+            val new = p.copy(
+                id = ProfileId(UUID.randomUUID().toString()),
+                name = p.name + " (copy)"
+            )
+            profileManager.upsert(new)
+            _effects.tryEmit(SettingsUiEffect.Toast("Duplicated"))
+        }
     }
 
     private fun confirmDelete() = viewModelScope.launch {
         val id = _state.value.pendingDeleteId ?: return@launch
-        runCatching { profileManager.delete(ProfileId(id)) }
-            .onSuccess {
-                _state.update { it.copy(pendingDeleteId = null) }
-                _effects.tryEmit(SettingsUiEffect.Toast("Deleted"))
-            }
-            .onFailure { ex ->
-                _effects.tryEmit(SettingsUiEffect.Toast("Delete failed: ${ex.message}"))
-            }
-    }
-
-    private fun exportProfile(id: String) = viewModelScope.launch {
-        val p = profileManager.getProfile(ProfileId(id)) ?: return@launch
-        val json = codec.encode(p)
-        _state.update { it.copy(showExportDialog = true, importExport = ImportExportUi(json = json)) }
+        profileManager.delete(id)
+        _state.update { it.copy(pendingDeleteId = null) }
+        _effects.tryEmit(SettingsUiEffect.Toast("Deleted"))
     }
 
     private fun exportAll() = viewModelScope.launch {
-        val profiles = profileManager.observeProfiles().first()
-        val arr = JSONArray()
-        profiles.forEach { arr.put(codec.encode(it)) }
-        _state.update { it.copy(showExportDialog = true, importExport = ImportExportUi(json = arr.toString())) }
+        val profiles = profileManager.getProfiles()
+        val jsonElements = profiles.map { codec.toJsonElement(it) }
+        val jsonArray = JsonArray(jsonElements)
+        _state.update { it.copy(showExportDialog = true, importExport = ImportExportUi(json = Json.encodeToString(JsonArray.serializer(), jsonArray))) }
+    }
+
+    private fun exportProfile(id: ProfileId) = viewModelScope.launch {
+        val p = profileManager.getProfile(id)
+        if (p != null) {
+            val json = codec.toPrettyJson(p)
+            _state.update { it.copy(showExportDialog = true, importExport = ImportExportUi(json = json)) }
+        }
     }
 
     private fun importCommit() = viewModelScope.launch {
-        val raw = _state.value.importExport.json.trim()
-        if (raw.isBlank()) return@launch
+        val json = _state.value.importExport.json.trim()
+        if (json.isBlank()) return@launch
 
         runCatching {
-            val imported = mutableListOf<Profile>()
-            if (raw.startsWith("[")) {
-                val arr = JSONArray(raw)
-                for (i in 0 until arr.length()) {
-                    val p = codec.decode(arr.getString(i)).copy(id = ProfileId(UUID.randomUUID().toString()))
-                    profileManager.upsert(p)
-                    imported += p
-                }
+            val profiles = if (json.startsWith("[")) {
+                val jsonArray = Json.decodeFromString<JsonArray>(json)
+                jsonArray.map { codec.fromJsonElement(it.jsonObject) }
             } else {
-                val p = codec.decode(raw).copy(id = ProfileId(UUID.randomUUID().toString()))
-                profileManager.upsert(p)
-                imported += p
+                listOf(codec.fromJson(json))
             }
-            imported
-        }.onSuccess { list ->
-            _state.update { it.copy(showImportDialog = false, importExport = ImportExportUi()) }
-            _effects.tryEmit(SettingsUiEffect.Toast("Imported: ${list.size} profile(s)"))
+
+            profiles.forEach { profileManager.upsert(it) }
+            _state.update { it.copy(showImportDialog = false) }
+            _effects.tryEmit(SettingsUiEffect.Toast("Imported ${profiles.size} profiles"))
         }.onFailure { ex ->
-            _state.update { it.copy(importExport = it.importExport.copy(error = ex.message ?: "Import failed")) }
+            _state.update { it.copy(importExport = it.importExport.copy(error = ex.message)) }
         }
     }
 }

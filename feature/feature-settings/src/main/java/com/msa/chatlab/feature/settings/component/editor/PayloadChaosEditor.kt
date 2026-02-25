@@ -7,33 +7,35 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.msa.chatlab.core.domain.model.ChaosProfile
-import com.msa.chatlab.core.domain.model.PayloadProfile
+import com.msa.chatlab.core.domain.model.ChaosPolicy
+import com.msa.chatlab.core.domain.model.PayloadPolicy
 
 @Composable
 fun PayloadChaosEditor(
-    payloadProfile: PayloadProfile,
-    chaosProfile: ChaosProfile,
-    onPayloadChanged: (PayloadProfile) -> Unit,
-    onChaosChanged: (ChaosProfile) -> Unit
+    payloadPolicy: PayloadPolicy,
+    chaosPolicy: ChaosPolicy,
+    onPayloadChanged: (PayloadPolicy) -> Unit,
+    onChaosChanged: (ChaosPolicy) -> Unit
 ) {
-    var targetSize by remember(payloadProfile.targetSizeBytes) { mutableStateOf(payloadProfile.targetSizeBytes.toString()) }
-    var dropRate by remember(chaosProfile.dropRatePercent) { mutableStateOf(chaosProfile.dropRatePercent.toString()) }
-    var enabled by remember(chaosProfile.enabled) { mutableStateOf(chaosProfile.enabled) }
+    var percentage by remember(payloadPolicy.percentage) { mutableStateOf(payloadPolicy.percentage?.toString() ?: "") }
+    var value by remember(payloadPolicy.value) { mutableStateOf(payloadPolicy.value ?: "") }
+    var chaosPercentage by remember(chaosPolicy.percentage) { mutableStateOf(chaosPolicy.percentage?.toString() ?: "") }
+    var enabled by remember { mutableStateOf(chaosPolicy.actions?.isNotEmpty() == true) }
 
-    LaunchedEffect(targetSize) {
+    LaunchedEffect(percentage, value) {
         onPayloadChanged(
-            payloadProfile.copy(
-                targetSizeBytes = targetSize.toIntOrNull() ?: 1024
+            payloadPolicy.copy(
+                percentage = percentage.toIntOrNull(),
+                value = value.takeIf { it.isNotBlank() }
             )
         )
     }
 
-    LaunchedEffect(dropRate, enabled) {
+    LaunchedEffect(chaosPercentage, enabled) {
         onChaosChanged(
-            chaosProfile.copy(
-                enabled = enabled,
-                dropRatePercent = dropRate.toDoubleOrNull() ?: 0.0
+            chaosPolicy.copy(
+                percentage = chaosPercentage.toIntOrNull(),
+                actions = if (enabled) chaosPolicy.actions else emptyList()
             )
         )
     }
@@ -44,10 +46,17 @@ fun PayloadChaosEditor(
         Column {
             Text("Payload", style = MaterialTheme.typography.titleSmall)
             OutlinedTextField(
-                value = targetSize,
-                onValueChange = { targetSize = it.filter { c -> c.isDigit() } },
-                label = { Text("Target size (bytes)") },
-                placeholder = { Text("1024") },
+                value = percentage,
+                onValueChange = { percentage = it.filter { c -> c.isDigit() } },
+                label = { Text("Percentage") },
+                placeholder = { Text("100") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                value = value,
+                onValueChange = { value = it },
+                label = { Text("Value") },
+                placeholder = { Text("custom payload") },
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -63,10 +72,10 @@ fun PayloadChaosEditor(
 
             if (enabled) {
                 OutlinedTextField(
-                    value = dropRate,
-                    onValueChange = { dropRate = it.filter { c -> c.isDigit() || c == '.' } },
-                    label = { Text("Drop rate (%)") },
-                    placeholder = { Text("5.0") },
+                    value = chaosPercentage,
+                    onValueChange = { chaosPercentage = it.filter { c -> c.isDigit() } },
+                    label = { Text("Chaos Percentage (%)") },
+                    placeholder = { Text("5") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Text(

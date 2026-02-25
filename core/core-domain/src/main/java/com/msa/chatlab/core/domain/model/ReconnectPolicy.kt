@@ -18,8 +18,9 @@ package com.msa.chatlab.core.domain.model
 import kotlinx.serialization.Serializable
 
 @Serializable
-enum class DeliverySemantics {
-    AtMostOnce,
-    AtLeastOnce,
-    ExactlyOnce
-}
+data class ReconnectPolicy(
+    val maxAttempts: Int = 3,
+    val initialBackoffMs: Long = 1000,
+    val maxBackoffMs: Long = 10_000,
+    val backoffMultiplier: Double = 2.0
+)

@@ -15,11 +15,28 @@
  */
 package com.msa.chatlab.core.domain.model
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-enum class DeliverySemantics {
-    AtMostOnce,
-    AtLeastOnce,
-    ExactlyOnce
+sealed class ChaosAction {
+
+    @Serializable
+    @SerialName("message.close")
+    object MessageClose : ChaosAction()
+
+    @Serializable
+    @SerialName("message.reset")
+    object MessageReset : ChaosAction()
+
+    @Serializable
+    @SerialName("message.abort")
+    object MessageAbort : ChaosAction()
+
 }
+
+@Serializable
+data class ChaosPolicy(
+    val percentage: Int? = null,
+    val actions: List<ChaosAction>? = null
+)

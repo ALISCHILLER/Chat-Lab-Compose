@@ -8,7 +8,7 @@ import com.msa.chatlab.core.protocol.api.payload.OutgoingPayload
 
 class WirePayloadCodec {
     fun encode(profile: Profile, payload: OutgoingPayload): OutgoingPayload {
-        return when (profile.payloadProfile.codec) {
+        return when (profile.payloadPolicy.codec) {
             CodecMode.PlainText -> payload
             CodecMode.StandardEnvelope -> {
                 val original = payload.envelope

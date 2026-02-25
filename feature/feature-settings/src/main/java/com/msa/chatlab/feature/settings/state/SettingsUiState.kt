@@ -9,6 +9,7 @@ data class SettingsUiState(
     val cards: List<UiProfileCard> = emptyList(),
 
     val supportedProtocols: List<ProtocolType> = emptyList(),
+    val protocolAvailability: Map<ProtocolType, Boolean> = emptyMap(),
 
     val editorProfile: Profile? = null,
     val editorIsNew: Boolean = false,

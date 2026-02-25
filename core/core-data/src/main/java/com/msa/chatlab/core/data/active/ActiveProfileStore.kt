@@ -3,6 +3,7 @@ package com.msa.chatlab.core.data.active
 import android.content.Context
 import com.msa.chatlab.core.data.repository.ProfileRepository
 import com.msa.chatlab.core.domain.model.Profile
+import com.msa.chatlab.core.domain.value.ProfileId
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,7 +38,7 @@ class PersistentActiveProfileStore(
         val id = prefs.getString("active_profile_id", null)
         if (id != null) {
             scope.launch {
-                _active.value = repo.getById(id)
+                _active.value = repo.getById(ProfileId(id))
             }
         }
     }

@@ -17,7 +17,7 @@ class ProfileManager(
 
     suspend fun getProfiles(): List<Profile> = repo.getAll()
 
-    suspend fun getProfile(id: ProfileId): Profile? = repo.getById(id.value)
+    suspend fun getProfile(id: ProfileId): Profile? = repo.getById(id)
 
     suspend fun search(query: String): List<Profile> = repo.search(query)
 
@@ -46,7 +46,7 @@ class ProfileManager(
     }
 
     suspend fun delete(id: ProfileId) {
-        repo.deleteById(id.value)
+        repo.deleteById(id)
         if (activeStore.activeProfile.value?.id == id) {
             activeStore.clear()
         }

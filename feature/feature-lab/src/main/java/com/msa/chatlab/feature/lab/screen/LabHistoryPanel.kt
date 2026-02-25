@@ -16,11 +16,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.msa.chatlab.core.designsystem.component.SectionCard
 import com.msa.chatlab.core.designsystem.theme.LocalSpacing
-import com.msa.chatlab.core.storage.entity.RunEntity
 
 @Composable
 fun LabHistoryPanel(
-    runs: List<RunEntity>,
+    runs: List<LabRunItem>,
     onOpenRun: (String) -> Unit
 ) {
     val s = LocalSpacing.current
@@ -51,3 +50,11 @@ fun LabHistoryPanel(
         }
     }
 }
+
+
+data class LabRunItem(
+    val id: String,
+    val protocolType: String,
+    val scenarioPreset: String,
+    val startedAt: Long
+)

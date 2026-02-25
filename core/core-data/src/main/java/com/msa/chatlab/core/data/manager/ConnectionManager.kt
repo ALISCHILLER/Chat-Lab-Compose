@@ -3,7 +3,7 @@ package com.msa.chatlab.core.data.manager
 import com.msa.chatlab.core.common.concurrency.AppScope
 import com.msa.chatlab.core.common.util.Backoff
 import com.msa.chatlab.core.data.registry.ProtocolRegistry
-import com.msa.chatlab.core.domain.model.ReconnectBackoffMode
+import com.msa.chatlab.core.domain.model.RetryPolicy
 import com.msa.chatlab.core.observability.crash.CrashReporter
 import com.msa.chatlab.core.observability.log.AppLogger
 import com.msa.chatlab.core.observability.log.d
@@ -171,21 +171,13 @@ class ConnectionManager(
     private fun scheduleReconnect() {
         scope.launch {
             val profile = activeProfileStore.getActiveNow() ?: return@launch
-            if (!profile.reconnectPolicy.enabled) return@launch
+            if (!profile.retryPolicy.enabled) return@launch
 
             reconnectJob = scope.launch {
                 var attempt = 1
                 while (isActive && _connectionState.value !is ConnectionState.Connected) {
-                    val policy = profile.reconnectPolicy
-                    val delayMs = when (policy.mode) {
-                        ReconnectBackoffMode.Exponential -> Backoff.exponential(
-                            attempt = attempt,
-                            initialMs = policy.backoffMs,
-                            maxMs = policy.maxBackoffMs,
-                            jitterRatio = policy.jitterRatio
-                        )
-                        ReconnectBackoffMode.Fixed -> Backoff.fixed(policy.backoffMs, policy.jitterRatio)
-                    }
+                    val policy = profile.retryPolicy
+                    val delayMs = Backoff.fixed(policy.delayMillis, policy.jitterRatio)
 
                     logger.i(TAG, "Scheduling reconnect attempt #$attempt in ${delayMs}ms")
                     delay(delayMs)

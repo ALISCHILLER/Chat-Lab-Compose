@@ -23,7 +23,6 @@ android {
 dependencies {
     implementation(project(":core:core-domain"))
     implementation(project(":core:core-protocol-api"))
-    implementation(project(":core:core-data"))
     implementation(libs.kotlinx.coroutines.core)
 
     implementation(libs.okhttp)

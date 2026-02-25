@@ -35,7 +35,7 @@ class DataStoreActiveProfileStore(
         appScope.scope.launch(dispatchers.io) {
             val activeProfileId = getActiveProfileId()
             if (activeProfileId != null) {
-                _activeProfile.value = profileRepository.getById(activeProfileId.value)
+                _activeProfile.value = profileRepository.getById(activeProfileId)
             }
         }
     }

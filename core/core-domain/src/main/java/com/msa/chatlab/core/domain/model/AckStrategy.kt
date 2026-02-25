@@ -18,8 +18,8 @@ package com.msa.chatlab.core.domain.model
 import kotlinx.serialization.Serializable
 
 @Serializable
-enum class DeliverySemantics {
-    AtMostOnce,
-    AtLeastOnce,
-    ExactlyOnce
+sealed class AckStrategy {
+    object None : AckStrategy()
+    object TransportLevel : AckStrategy()
+    data class ApplicationLevel(val ackTimeoutMs: Long = 5000) : AckStrategy()
 }

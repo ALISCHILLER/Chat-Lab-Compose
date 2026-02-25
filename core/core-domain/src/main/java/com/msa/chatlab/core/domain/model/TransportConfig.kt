@@ -1,11 +1,15 @@
 package com.msa.chatlab.core.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 sealed interface TransportConfig {
     val endpoint: String
     val headers: Map<String, String>
 }
 
 /** WebSocket - OkHttp */
+@Serializable
 data class WsOkHttpConfig(
     override val endpoint: String,
     val pingIntervalMs: Long = 15_000,
@@ -13,6 +17,7 @@ data class WsOkHttpConfig(
 ) : TransportConfig
 
 /** WebSocket - Ktor */
+@Serializable
 data class WsKtorConfig(
     override val endpoint: String,
     val pingIntervalMs: Long = 15_000,
@@ -21,6 +26,7 @@ data class WsKtorConfig(
 ) : TransportConfig
 
 /** MQTT */
+@Serializable
 data class MqttConfig(
     override val endpoint: String,          // tcp://host:1883
     val clientId: String,
@@ -33,6 +39,7 @@ data class MqttConfig(
 ) : TransportConfig
 
 /** Socket.IO */
+@Serializable
 data class SocketIoConfig(
     override val endpoint: String,          // base url
     val namespace: String? = null,
@@ -42,6 +49,7 @@ data class SocketIoConfig(
 ) : TransportConfig
 
 /** SignalR */
+@Serializable
 data class SignalRConfig(
     override val endpoint: String,          // hub url
     val hubMethodName: String = "Send",
@@ -49,6 +57,7 @@ data class SignalRConfig(
     override val headers: Map<String, String> = emptyMap()
 ) : TransportConfig
 
+@Serializable
 enum class SignalRTransportPreference {
     Auto, WebSocketOnly, SseOnly, LongPollingOnly
 }

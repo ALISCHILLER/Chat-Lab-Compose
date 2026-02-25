@@ -1,9 +1,10 @@
 package com.msa.chatlab.di
-
 import com.msa.chatlab.BuildConfig
+import com.msa.chatlab.protocol.mqtt.di.MqttProtocolModule
 import com.msa.chatlab.protocol.signalr.di.signalRProtocolModule
 import com.msa.chatlab.protocol.socketio.di.SocketIoProtocolModule
 import com.msa.chatlab.protocol.websocket.okhttp.di.WsOkHttpProtocolModule
+import com.msa.chatlab.protocol.ws.ktor.di.KtorWsProtocolModule
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
@@ -15,6 +16,8 @@ val AppModule = module {
 
         // Protocol implementations
         WsOkHttpProtocolModule,
+        KtorWsProtocolModule,
+        MqttProtocolModule,
         signalRProtocolModule,
         SocketIoProtocolModule
     )

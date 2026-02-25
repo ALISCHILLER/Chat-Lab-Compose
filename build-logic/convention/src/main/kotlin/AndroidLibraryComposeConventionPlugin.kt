@@ -1,37 +1,39 @@
 import com.android.build.api.dsl.LibraryExtension
+import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.kotlin.dsl.configure
-import org.gradle.kotlin.dsl.dependencies
+import org.jetbrains.kotlin.gradle.dsl.KotlinJvmOptions
 
 class AndroidLibraryComposeConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
-            pluginManager.apply("com.msa.chatlab.android.library")
+            pluginManager.apply("com.android.library")
+            pluginManager.apply("org.jetbrains.kotlin.android")
 
-            val libs = extensions.getByType(VersionCatalogsExtension::class.java).named("libs")
-            val composeCompiler = libs.findVersion("compose-compiler").get().requiredVersion
+            extensions.configure<LibraryExtension> { 
+                compileSdk = 34
 
-            extensions.configure<LibraryExtension> {
-                buildFeatures.compose = true
-                composeOptions {
-                    kotlinCompilerExtensionVersion = composeCompiler
+                defaultConfig {
+                    minSdk = 26
                 }
-            }
+                
+                compileOptions {
+                    sourceCompatibility = JavaVersion.VERSION_17
+                    targetCompatibility = JavaVersion.VERSION_17
+                }
 
-            dependencies {
-                val composeBom = libs.findLibrary("androidx-compose-bom").get()
-                add("implementation", platform(composeBom))
-                add("androidTestImplementation", platform(composeBom))
+                (this as org.gradle.api.plugins.ExtensionAware).extensions.configure<KotlinJvmOptions>("kotlinOptions") {
+                    jvmTarget = "17"
+                }
 
-                add("implementation", libs.findLibrary("androidx-compose-ui").get())
-                add("implementation", libs.findLibrary("androidx-compose-ui-graphics").get())
-                add("implementation", libs.findLibrary("androidx-compose-material3").get())
-                add("implementation", libs.findLibrary("androidx-compose-ui-tooling-preview").get())
-                add("debugImplementation", libs.findLibrary("androidx-compose-ui-tooling").get())
-                add("implementation", libs.findLibrary("androidx-compose-material-icons-extended").get())
-                add("implementation", libs.findLibrary("androidx-lifecycle-runtime-compose").get())
+                buildFeatures {
+                    compose = true
+                }
+
+                composeOptions {
+                    kotlinCompilerExtensionVersion = "1.5.14"
+                }
             }
         }
     }

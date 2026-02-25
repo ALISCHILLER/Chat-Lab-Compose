@@ -16,7 +16,7 @@ class SessionExporter(
         events: List<RunEvent>
     ): Map<String, String> {
         val profile = profileManager.activeStore.getActiveNow()
-        val profileJson = profile?.let { codec.encode(it) } ?: "{}"
+        val profileJson = profile?.let { codec.toCompactJson(it) } ?: "{}"
 
         val csv = buildString {
             appendLine("timestamp,event_type,message_id,reason")
