@@ -28,6 +28,9 @@ class ConnectionManager(
     private val logger: AppLogger,
     private val crash: CrashReporter
 ) {
+    private companion object {
+        const val TAG = "ConnectionManager"
+    }
     private val scope: CoroutineScope get() = appScope.scope
     private val connectMutex = Mutex()
 
@@ -54,17 +57,17 @@ class ConnectionManager(
         scope.launch {
             activeProfileStore.activeProfile.collectLatest { profile ->
                 connectMutex.withLock {
-                    logger.i(this, "Active profile changed to: ${profile?.name ?: "None"}")
+                    logger.i(TAG, "Active profile changed to: ${profile?.name ?: "None"}")
                     // Disconnect and cleanup old transport
                     disconnectInternal("Profile changed")
                     // If there's a new profile, resolve and set up its transport
                     if (profile != null) {
                         try {
                             _transport.value = protocolRegistry.create(profile)
-                            logger.i(this, "Transport resolved for ${profile.name}")
+                            logger.i(TAG, "Transport resolved for ${profile.name}")
                         } catch (e: Exception) {
-                            logger.e(this, e, "Failed to resolve transport for ${profile.name}")
-                            crash.report(e, "Transport resolution failed")
+                            logger.e(TAG, "Failed to resolve transport for ${profile.name}", throwable = e)
+                            crash.record(e, mapOf("message" to "Transport resolution failed"))
                             _transport.value = null
                         }
                     } else {
@@ -90,18 +93,18 @@ class ConnectionManager(
     suspend fun connect() {
         connectMutex.withLock {
             if (_simulateOffline.value) {
-                logger.i(this, "Connect ignored: Offline simulation is active")
+                logger.i(TAG, "Connect ignored: Offline simulation is active")
                 _events.tryEmit(TransportEvent.ErrorOccurred(TransportError.NotConnected("Simulating offline")))
                 return
             }
             val currentTransport = _transport.value
             if (currentTransport == null) {
-                logger.e(this, "Connect failed: No active transport")
+                logger.e(TAG, "Connect failed: No active transport")
                 _events.tryEmit(TransportEvent.ErrorOccurred(TransportError.NotConnected("No active profile/transport")))
                 return
             }
             if (_connectionState.value is ConnectionState.Connected || _connectionState.value is ConnectionState.Connecting) {
-                logger.d(this, "Connect ignored: Already connected or connecting")
+                logger.d(TAG, "Connect ignored: Already connected or connecting")
                 return
             }
 
@@ -124,9 +127,9 @@ class ConnectionManager(
             scope.launch {
                 try {
                     currentTransport.connect()
-                    logger.i(this, "Connection successful")
+                    logger.i(TAG, "Connection successful")
                 } catch (e: Exception) {
-                    logger.e(this, e, "Connection failed")
+                    logger.e(TAG, "Connection failed", throwable = e)
                     _events.tryEmit(TransportEvent.ErrorOccurred(TransportError.ConnectionFailed(e.message, e)))
                     _connectionState.value = ConnectionState.Disconnected("Connection failed: ${e.message}")
                     scheduleReconnect()
@@ -155,14 +158,14 @@ class ConnectionManager(
             try {
                 currentTransport.disconnect()
             } catch (e: Exception) {
-                logger.e(this, e, "Error during disconnect")
+                logger.e(TAG, "Error during disconnect", throwable = e)
             }
         }
         _connectionState.value = ConnectionState.Idle
         eventFanoutJob?.cancel()
         stateFanoutJob?.cancel()
         statsFanoutJob?.cancel()
-        logger.d(this, "Disconnected internally. Reason: $reason")
+        logger.d(TAG, "Disconnected internally. Reason: $reason")
     }
 
     private fun scheduleReconnect() {
@@ -174,21 +177,21 @@ class ConnectionManager(
                 var attempt = 1
                 while (isActive && _connectionState.value !is ConnectionState.Connected) {
                     val policy = profile.reconnectPolicy
-                    val delayMs = when (policy.backoffMode) {
+                    val delayMs = when (policy.mode) {
                         ReconnectBackoffMode.Exponential -> Backoff.exponential(
                             attempt = attempt,
-                            initial = policy.initialBackoffMs,
-                            max = policy.maxBackoffMs,
-                            jitter = 0.25
+                            initialMs = policy.backoffMs,
+                            maxMs = policy.maxBackoffMs,
+                            jitterRatio = policy.jitterRatio
                         )
-                        ReconnectBackoffMode.Fixed -> policy.initialBackoffMs
+                        ReconnectBackoffMode.Fixed -> Backoff.fixed(policy.backoffMs, policy.jitterRatio)
                     }
 
-                    logger.i(this, "Scheduling reconnect attempt #$attempt in ${delayMs}ms")
+                    logger.i(TAG, "Scheduling reconnect attempt #$attempt in ${delayMs}ms")
                     delay(delayMs)
 
                     if (isActive && _connectionState.value !is ConnectionState.Connected) {
-                        logger.i(this, "Executing reconnect attempt #$attempt")
+                        logger.i(TAG, "Executing reconnect attempt #$attempt")
                         connect()
                         attempt++
                     }

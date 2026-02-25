@@ -71,7 +71,7 @@ val DataModule = module {
         ConnectionLogBinder(
             connectionManager = get(),
             logStore = get(),
-            appScope = get()
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         ).apply { start() }
     }
 
@@ -105,12 +105,13 @@ val DataModule = module {
     // misc
     single<DeviceInfoProvider> { AndroidDeviceInfoProvider(androidContext()) }
     single<DedupStore> { RoomDedupStore(get()) }
-    single { TelemetryLogger() }
+    single { TelemetryLogger(get()) }
 
     single {
         AppLifecycleObserver(
-            outboxProcessor = get(),
-            telemetryLogger = get()
+            connectionLogBinder = get(),
+            transportMessageBinder = get(),
+            outboxProcessor = get()
         )
     }
     single {
@@ -123,9 +124,8 @@ val DataModule = module {
     }
     single {
         SessionExporter(
-            context = androidContext(),
-            runDao = get(),
-            runEventDao = get()
+            profileManager = get(),
+            codec = get()
         )
     }
 }

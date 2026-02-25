@@ -124,7 +124,7 @@ class SettingsViewModel(
 
     private fun apply(id: String) = viewModelScope.launch {
         val p = profileManager.getProfile(ProfileId(id)) ?: return@launch
-        profileManager.setActive(p)
+        activeStore.setActive(p)
         _effects.tryEmit(SettingsUiEffect.Toast("Applied: ${p.name}"))
     }
 

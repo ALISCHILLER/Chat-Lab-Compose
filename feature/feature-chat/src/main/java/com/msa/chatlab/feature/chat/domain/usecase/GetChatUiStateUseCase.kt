@@ -1,8 +1,8 @@
 package com.msa.chatlab.feature.chat.domain.usecase
 
 import com.msa.chatlab.core.data.active.ActiveProfileStore
+import com.msa.chatlab.core.domain.model.OutboxStatus
 import com.msa.chatlab.core.domain.repository.MessageRepository
-import com.msa.chatlab.core.storage.entity.OutboxStatus
 import com.msa.chatlab.feature.chat.model.toChatMessageUi
 import com.msa.chatlab.feature.chat.state.ChatUiState
 import kotlinx.coroutines.flow.Flow

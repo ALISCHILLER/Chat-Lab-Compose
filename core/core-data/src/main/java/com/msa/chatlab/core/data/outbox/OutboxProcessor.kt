@@ -73,10 +73,16 @@ class OutboxProcessor(
 
     private suspend fun flushQueue(profileId: String) {
         val profile = activeProfileStore.getActiveNow() ?: return
-        val (deliveryPolicy, retryPolicy) = profile.outboxPolicy
+        val deliveryPolicy = profile.deliveryPolicy
+        val retryPolicy = profile.retryPolicy
+        val outboxPolicy = profile.outboxPolicy
 
         while (scope.isActive) {
-            val items = outboxQueue.claimPendingBatch(profileId, deliveryPolicy.inFlightLeaseMs, deliveryPolicy.batchSize)
+            val items = outboxQueue.claimPendingBatch(
+                profileId,
+                outboxPolicy.inFlightLeaseMs,
+                outboxPolicy.flushBatchSize
+            )
             if (items.isEmpty()) {
                 delay(500) // Wait before polling again
                 continue
@@ -97,14 +103,27 @@ class OutboxProcessor(
 
                     messageDao.updateDelivery(profileId, item.messageId, true, item.attempt, MessageStatus.Sending.name, null, System.currentTimeMillis())
 
-                    if (profile.ackStrategy == AckStrategy.FireAndForget) {
+                    if (deliveryPolicy.ackStrategy !is AckStrategy.ApplicationLevel) {
                         outboxQueue.remove(profileId, item.messageId)
                     }
 
                     connectionManager.send(payload)
 
-                    if (profile.ackStrategy == AckStrategy.FireAndForget) {
+                    if (deliveryPolicy.ackStrategy !is AckStrategy.ApplicationLevel) {
                         messageDao.updateDelivery(profileId, item.messageId, false, item.attempt, MessageStatus.Sent.name, null, System.currentTimeMillis())
+                    } else {
+                        val ackTimeoutMs = (deliveryPolicy.ackStrategy as AckStrategy.ApplicationLevel).ackTimeoutMs
+                        val acked = ackTracker.awaitAck(item.messageId, ackTimeoutMs)
+                        if (acked) {
+                            outboxQueue.remove(profileId, item.messageId)
+                            messageDao.updateDelivery(profileId, item.messageId, false, item.attempt, MessageStatus.Delivered.name, null, System.currentTimeMillis())
+                        } else {
+                            val err = "ACK timeout"
+                            val nextAttempt = item.attempt + 1
+                            outboxQueue.updateAttempt(profileId, item.messageId, nextAttempt, OutboxStatus.PENDING, err)
+                            messageDao.updateDelivery(profileId, item.messageId, true, nextAttempt, MessageStatus.Sending.name, err, System.currentTimeMillis())
+                        }
+
                     }
                 } catch (e: Exception) {
                     if (e is CancellationException) {

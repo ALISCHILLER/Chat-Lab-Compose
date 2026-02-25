@@ -34,8 +34,8 @@ class StartupBootstrapper(
         if (firstProfile != null) {
             activeStore.setActive(firstProfile)
         } else {
-            // اگر هیچ پروفایلی وجود نداشت، یک নোটিশ برای ساخت پروفایل دیفالت نشان بده
-            noticeStore.setShouldShowProfileCreationNotice(true)
+            // اگر هیچ پروفایلی وجود نداشت، یک پیام راهنما برای ساخت پروفایل دیفالت نشان بده
+            noticeStore.set("No profile found. Please create or import a profile.")
         }
     }
 }

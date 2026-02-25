@@ -55,7 +55,7 @@ class TransportMessageBinder(
             messageId = envelope.messageId.value,
             direction = "IN",
             destination = "local", // or parse from payload if available
-            status = MessageStatus.Received.name,
+            status = MessageStatus.Delivered.name,
             text = envelope.body.decodeToString(), // assuming text
             createdAt = envelope.createdAt.value,
             contentType = envelope.contentType,
@@ -64,12 +64,14 @@ class TransportMessageBinder(
         )
         messageDao.upsert(entity)
 
-        telemetryLogger.onMessageReceived(envelope.headers)
+        telemetryLogger.logRecv(
+            messageId = envelope.messageId.value,
+            source = envelope.headers["source"],
+            headers = envelope.headers
+        )
     }
 
     private suspend fun handleMessageSent(ev: TransportEvent.MessageSent) {
-        val profileId = activeProfileStore.getActiveNow()?.id?.value ?: return
-
-        ackTracker.onMessageSent(profileId, ev.messageId)
+        ackTracker.onAck(ev.messageId)
     }
 }

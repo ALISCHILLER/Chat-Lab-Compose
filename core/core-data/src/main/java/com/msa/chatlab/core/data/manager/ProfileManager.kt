@@ -39,7 +39,7 @@ class ProfileManager(
 
     suspend fun upsert(profile: Profile): ValidationResult {
         val validation = validate(profile)
-        if (validation.isSuccess) {
+        if (validation.isValid) {
             repo.upsert(profile)
         }
         return validation
