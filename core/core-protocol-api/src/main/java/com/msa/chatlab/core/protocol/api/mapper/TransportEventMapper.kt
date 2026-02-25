@@ -1,6 +1,6 @@
-package com.msa.chatlab.core.data.mapper
+package com.msa.chatlab.core.protocol.api.mapper
 
-import com.msa.chatlab.core.data.codec.StandardEnvelopeCodec
+import com.msa.chatlab.core.protocol.api.codec.StandardEnvelopeCodec
 import com.msa.chatlab.core.domain.value.MessageId
 import com.msa.chatlab.core.domain.value.TimestampMillis
 import com.msa.chatlab.core.protocol.api.event.TransportEvent

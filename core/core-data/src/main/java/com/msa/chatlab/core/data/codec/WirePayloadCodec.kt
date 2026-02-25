@@ -2,6 +2,7 @@ package com.msa.chatlab.core.data.codec
 
 import com.msa.chatlab.core.domain.model.CodecMode
 import com.msa.chatlab.core.domain.model.Profile
+import com.msa.chatlab.core.protocol.api.codec.StandardEnvelopeCodec
 import com.msa.chatlab.core.protocol.api.payload.Envelope
 import com.msa.chatlab.core.protocol.api.payload.OutgoingPayload
 

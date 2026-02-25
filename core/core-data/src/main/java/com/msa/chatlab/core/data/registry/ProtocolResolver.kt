@@ -1,18 +1,14 @@
 package com.msa.chatlab.core.data.registry
 
-import com.msa.chatlab.core.data.active.ActiveProfileStore
-import com.msa.chatlab.core.domain.model.Profile
-import com.msa.chatlab.core.protocol.api.contract.TransportContract
+import com.msa.chatlab.core.domain.model.ProtocolType
+import com.msa.chatlab.core.protocol.api.registry.ProtocolBinding
+import javax.inject.Inject
+import javax.inject.Provider
 
-class ProtocolResolver(
-    private val activeProfileStore: ActiveProfileStore,
-    private val registry: ProtocolRegistry
+class ProtocolResolver @Inject constructor(
+    private val bindings: Map<ProtocolType, @JvmSuppressWildcards Provider<ProtocolBinding>>
 ) {
-    fun currentProfileOrThrow(): Profile =
-        activeProfileStore.activeProfile.value ?: error("No active profile selected")
-
-    fun resolveCurrentTransport(): TransportContract {
-        val profile = currentProfileOrThrow()
-        return registry.create(profile)
+    fun all(): List<ProtocolType> {
+        return bindings.keys.toList()
     }
 }

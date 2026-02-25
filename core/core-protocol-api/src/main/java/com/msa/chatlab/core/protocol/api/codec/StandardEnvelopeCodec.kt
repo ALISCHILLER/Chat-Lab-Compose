@@ -1,4 +1,4 @@
-package com.msa.chatlab.core.data.codec
+package com.msa.chatlab.core.protocol.api.codec
 
 import android.util.Base64
 import com.msa.chatlab.core.domain.value.MessageId

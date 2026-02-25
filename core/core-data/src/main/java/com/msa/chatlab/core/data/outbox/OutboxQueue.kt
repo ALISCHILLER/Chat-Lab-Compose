@@ -1,6 +1,6 @@
 package com.msa.chatlab.core.data.outbox
 
-import com.msa.chatlab.core.storage.entity.OutboxStatus
+import com.msa.chatlab.core.domain.model.OutboxStatus
 import kotlinx.coroutines.flow.Flow
 
 interface OutboxQueue {
@@ -26,9 +26,8 @@ interface OutboxQueue {
 
     suspend fun count(profileId: String, statuses: List<OutboxStatus>): Int
 
-    fun observeByStatus(profileId: String, status: OutboxStatus): Flow<List<OutboxItem>>
     fun observeCount(profileId: String, status: OutboxStatus): Flow<Int>
-
-    suspend fun retryAllFailed(profileId: String)
+    fun observeByStatus(profileId: String, status: OutboxStatus): Flow<List<OutboxItem>>
     suspend fun clearFailed(profileId: String)
+    suspend fun retryAllFailed(profileId: String)
 }

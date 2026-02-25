@@ -1,6 +1,6 @@
 package com.msa.chatlab.core.data.outbox
 
-import com.msa.chatlab.core.storage.entity.OutboxStatus
+import com.msa.chatlab.core.domain.model.OutboxStatus
 
 data class OutboxItem(
     val profileId: String,

@@ -1,5 +1,5 @@
 plugins {
-    id("com.msa.chatlab.android.library.compose")
+    id("com.msa.chatlab.android.library")
 }
 
 android {

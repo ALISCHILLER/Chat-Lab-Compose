@@ -1,36 +1,29 @@
-# 📊 ChatLab: A Personal Laboratory for Real-time Communication Protocols
+<!--
+***
+***
+***
+This README is generated from a template. To edit it, open the `.github/README.md.template` file.
+***
+***
+***
+-->
+<p align="center">
+  <img src="docs/logo.png" alt="ChatLab Logo" width="150" />
+</p>
 
-**ChatLab** is not a demo application; it is a **personal engineering tool** for testing, comparing, and selecting real-time communication protocols in Android projects. This project allows you to simulate complex network scenarios and choose the best protocol for your project's needs based on **real, reproducible data**.
+# 🧪 ChatLab
 
-## 🎯 Philosophy and Core Purpose
+**ChatLab** is an Android application for protocol testing and performance analysis. It allows you to create different communication profiles (WebSocket, MQTT, Socket.IO, SignalR), connect to endpoints, send/receive messages, and run predefined test scenarios to measure performance.
 
-In the real world, choosing between WebSocket, MQTT, Socket.IO, or SignalR is not a simple decision. Each behaves differently under specific conditions (poor network, battery consumption, delivery guarantees). ChatLab is built to answer these questions:
-
-1.  **Profile-Centric:** Create a complete configuration profile for each scenario and protocol.
-2.  **Scientific Comparison:** Fairly compare the performance of different protocols by running identical scenarios.
-3.  **Standardized Output:** Receive test results in JSON and CSV formats for analysis and reporting.
-4.  **Extractable Code:** Key modules, such as the `outbox` (offline queue) and protocol implementations, are designed to be directly usable in your real-world projects.
+It serves as a reference implementation for a modular, clean-architecture Android project.
 
 ---
 
-## ✨ Key Features
+## 🎯 Core Problem
 
-*   **True Multi-module Architecture:** Complete separation of layers for easy maintenance and code extraction.
-*   **Support for 5 Industrial Protocols:**
-    *   WebSocket (with OkHttp and Ktor)
-    *   MQTT (with Eclipse Paho)
-    *   Socket.IO
-    *   SignalR
-*   **Durable Outbox (Offline Queue):** Guarantees message delivery after connection is restored, even after an application restart.
-*   **Retry Engine:** With `Exponential Backoff` logic for smart handling of sending errors.
-*   **Scenario-Based Laboratory:**
-    *   **Stable:** Stability testing under ideal conditions.
-    *   **Intermittent:** Testing under frequent, short network disconnections.
-    *   **OfflineBurst:** Testing the sending of a large volume of messages after a long offline period.
-    *   **Lossy:** Simulating an unreliable network with packet loss.
-    *   **LoadBurst:** Stress testing the system under sudden high traffic.
-*   **Scientific Reproducibility:** All scenarios are reproducible using a `seed`.
-*   **Standardized and Analyzable Output:** Includes `profile_used.json`, `run_events.csv`, and `metrics_summary.json`.
+When building real-time applications, choosing the right communication protocol is critical. In the real world, choosing between WebSocket, MQTT, Socket.IO, or SignalR is not just about features, but also about performance, reliability, and battery consumption under different network conditions.
+
+This project aims to provide a standardized testbed for evaluating these protocols on a real Android device.
 
 ---
 
@@ -56,6 +49,7 @@ The project is designed based on the principles of **Clean Architecture** with t
 
 ---
 
+
 ## 🛠️ Tech Stack
 
 *   **Language:** 100% Kotlin
@@ -80,16 +74,3 @@ The project is designed based on the principles of **Clean Architecture** with t
 6.  **Run a Scenario:** Go to the **Lab** screen and run one of the default scenarios (e.g., `Stable`). After completion, a summary of the results will be displayed.
 
 ---
-
-## 📈 Analyzing the Results
-
-After each scenario run, an **Export Bundle** is saved to your device's internal storage. This bundle includes three key files:
-
-1.  **`profile_used.json`**: A complete copy of the profile used in the test.
-2.  **`run_events.csv`**: A timeline of all important events (connection, disconnection, sending, receiving, errors) with precise timestamps.
-3.  **`metrics_summary.json`**: A summary of the most important performance metrics, including:
-    *   `successRatePercent`: The percentage of successful messages.
-    *   `latencyP95Ms`: The 95th percentile latency.
-    *   `throughputMsgPerSec`: The throughput (number of messages per second).
-
-These files allow you to compare the performance of different protocols under the same conditions in a **scientific and defensible** manner.

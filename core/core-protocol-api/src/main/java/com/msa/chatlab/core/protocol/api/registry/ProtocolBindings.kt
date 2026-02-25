@@ -1,4 +1,4 @@
-package com.msa.chatlab.core.data.registry
+package com.msa.chatlab.core.protocol.api.registry
 
 import com.msa.chatlab.core.domain.model.Profile
 import com.msa.chatlab.core.domain.model.ProtocolType

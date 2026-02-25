@@ -1,7 +1,6 @@
 package com.msa.chatlab.core.data.manager
 
 import com.msa.chatlab.core.data.ack.AckTracker
-import com.msa.chatlab.core.data.active.ActiveProfileStore
 import com.msa.chatlab.core.data.dedup.DedupStore
 import com.msa.chatlab.core.data.telemetry.TelemetryHeaders
 import com.msa.chatlab.core.data.telemetry.TelemetryLogger
@@ -14,6 +13,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import com.msa.chatlab.core.data.active.ActiveProfileStore
 
 class TransportMessageBinder(
     private val activeProfileStore: ActiveProfileStore,
@@ -39,66 +39,36 @@ class TransportMessageBinder(
         }
     }
 
+    fun stop() {
+        job?.cancel()
+        job = null
+    }
+
     private suspend fun handleMessageReceived(ev: TransportEvent.MessageReceived) {
         val profile = activeProfileStore.getActiveNow() ?: return
-        val env = ev.payload.envelope
-        val now = System.currentTimeMillis()
+        val envelope = ev.payload.envelope
 
-        val headers = env.headers
-        telemetryLogger.logRecv(env.messageId.value, ev.payload.source, headers)
+        if (dedupStore.isDuplicate(profile.id.value, envelope.messageId.value)) return
 
-        val dir = messageDao.getDirection(profile.id.value, env.messageId.value)
-        if (dir == "OUT") {
-            messageDao.updateDelivery(
-                profileId = profile.id.value,
-                messageId = env.messageId.value,
-                queued = false,
-                attempt = 0,
-                status = MessageStatus.Delivered.name,
-                lastError = null,
-                updatedAt = now
-            )
-            ackTracker.onAck(env.messageId.value)
-            return
-        }
-
-        val dedupKey = headers[TelemetryHeaders.IDEMPOTENCY_KEY] ?: env.messageId.value
-        if (!dedupStore.shouldProcess(dedupKey)) {
-            return
-        }
-
-        val text =
-            if (env.contentType.startsWith("text/")) env.body.decodeToString()
-            else "<${env.contentType} • ${env.body.size} bytes>"
-
-        val destinationKey = ev.payload.source ?: "default"
-
-        messageDao.upsert(
-            MessageEntity(
-                profileId = profile.id.value,
-                messageId = env.messageId.value,
-                direction = "IN",
-                destination = destinationKey,
-                source = ev.payload.source,
-                contentType = env.contentType,
-                headersJson = HeaderJson.encode(headers),
-                text = text,
-                createdAt = env.createdAt.value,
-                status = MessageStatus.Delivered.name,
-                queued = false,
-                attempt = 0,
-                lastError = null,
-                updatedAt = now
-            )
+        // persist IN message
+        val entity = MessageEntity(
+            profileId = profile.id.value,
+            messageId = envelope.messageId.value,
+            isOutgoing = false,
+            destination = "local", // or parse from payload if available
+            status = MessageStatus.Received.name,
+            text = envelope.body.decodeToString(), // assuming text
+            timestamp = envelope.createdAt.value,
+            headers = HeaderJson.encode(envelope.headers)
         )
+        messageDao.insert(entity)
+
+        telemetryLogger.onMessageReceived(envelope.headers)
     }
 
     private suspend fun handleMessageSent(ev: TransportEvent.MessageSent) {
-        messageDao.updateStatusByMessageId(
-            messageId = ev.messageId,
-            status = MessageStatus.Sent.name,
-            lastError = null,
-            updatedAt = System.currentTimeMillis()
-        )
+        val profileId = activeProfileStore.getActiveNow()?.id?.value ?: return
+
+        ackTracker.onMessageSent(profileId, ev.messageId)
     }
 }

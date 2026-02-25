@@ -3,6 +3,7 @@ package com.msa.chatlab.core.data.registry
 import com.msa.chatlab.core.domain.model.Profile
 import com.msa.chatlab.core.domain.model.ProtocolType
 import com.msa.chatlab.core.protocol.api.contract.TransportContract
+import com.msa.chatlab.core.protocol.api.registry.ProtocolBinding
 
 class ProtocolRegistry(
     bindings: List<ProtocolBinding>

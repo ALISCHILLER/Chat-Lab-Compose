@@ -1,6 +1,6 @@
 package com.msa.chatlab.protocol.websocket.okhttp.mapper
 
-import com.msa.chatlab.core.data.codec.StandardEnvelopeCodec
+import com.msa.chatlab.core.protocol.api.codec.StandardEnvelopeCodec
 import com.msa.chatlab.core.domain.value.MessageId
 import com.msa.chatlab.core.domain.value.TimestampMillis
 import com.msa.chatlab.core.protocol.api.payload.Envelope

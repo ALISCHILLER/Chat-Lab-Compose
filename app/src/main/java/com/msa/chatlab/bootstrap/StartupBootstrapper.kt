@@ -1,9 +1,9 @@
 package com.msa.chatlab.bootstrap
 
 import android.content.Context
-import com.msa.chatlab.core.data.active.ActiveProfileStore
 import com.msa.chatlab.core.data.manager.ProfileManager
 import com.msa.chatlab.core.domain.value.ProfileId
+import com.msa.chatlab.core.data.active.ActiveProfileStore
 
 class StartupBootstrapper(
     private val context: Context,
@@ -29,21 +29,13 @@ class StartupBootstrapper(
             }
         }
 
-        // اگر هنوز active نداریم:
-        if (activeStore.getActiveNow() != null) return
-
-        val profiles = profileManager.getProfiles()
-        val activated = if (profiles.isNotEmpty()) {
-            profiles.first().also { profileManager.setActive(it) }
+        // اگر پروفایل فعال وجود نداشت، اولین پروفایل لیست را فعال کن
+        val firstProfile = profileManager.getProfiles().firstOrNull()
+        if (firstProfile != null) {
+            activeStore.setActive(firstProfile)
         } else {
-            val p = profileManager.createDefaultWsOkHttpProfile(
-                name = "WS-OkHttp Default",
-                endpoint = "wss://echo.websocket.events"
-            )
-            profileManager.setActive(p)
-            p
+            // اگر هیچ پروفایلی وجود نداشت، یک নোটিশ برای ساخت پروفایل دیفالت نشان بده
+            noticeStore.setShouldShowProfileCreationNotice(true)
         }
-
-        noticeStore.set("Active profile: ${activated.name} • ${activated.transportConfig.endpoint}")
     }
 }

@@ -3,7 +3,6 @@ package com.msa.chatlab.di
 import com.msa.chatlab.AppLifecycleObserver
 import com.msa.chatlab.core.data.ack.AckTracker
 import com.msa.chatlab.core.data.ack.RoomAckTracker
-import com.msa.chatlab.core.data.active.ActiveProfileStore
 import com.msa.chatlab.core.data.active.DataStoreActiveProfileStore
 import com.msa.chatlab.core.data.codec.ProfileJsonCodec
 import com.msa.chatlab.core.data.codec.WirePayloadCodec
@@ -34,6 +33,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
+import com.msa.chatlab.core.data.active.ActiveProfileStore
 
 val DataModule = module {
     includes(CoreModule)
@@ -59,39 +59,75 @@ val DataModule = module {
     // protocols & connection
     single { ProtocolRegistry(getAll()) }
     single { ProtocolResolver(get(), get()) }
-
-    single { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
+    single {
+        ConnectionManager(
+            appScope = get(),
+            activeProfileStore = get(),
+            resolver = get(),
+            logger = get(),
+            crash = get()
+        )
+    }
     single { ConnectionLogStore() }
-    single { ConnectionLogBinder(get(), get(), get()) }
-
-    single { ConnectionManager(get(), get(), get(), get(), get()) }
+    single {
+        ConnectionLogBinder(
+            connectionManager = get(),
+            logStore = get(),
+            appScope = get()
+        ).apply { start() }
+    }
 
     // outbox
     single<OutboxQueue> { RoomOutboxQueue(get()) }
     single<AckTracker> { RoomAckTracker(get()) }
-    single<DedupStore> { RoomDedupStore(get()) }
-    single { OutboxProcessor(get(), get(), get(), get(), get(), get(), get()) }
-
-    // sender
+    single {
+        OutboxProcessor(
+            outboxQueue = get(),
+            connectionManager = get(),
+            activeProfileStore = get(),
+            messageDao = get(),
+            wireCodec = get(),
+            ackTracker = get(),
+            telemetryLogger = get()
+        )
+    }
     single { MessageSender(get(), get(), get(), get()) }
+    single {
+        TransportMessageBinder(
+            activeProfileStore = get(),
+            connectionManager = get(),
+            messageDao = get(),
+            ackTracker = get(),
+            dedupStore = get(),
+            telemetryLogger = get(),
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        ).apply { start() }
+    }
 
-    // message binder
-    single { TransportMessageBinder(get(), get(), get(), get(), get(), get(), get()) }
-
-    // lab dependencies
+    // misc
     single<DeviceInfoProvider> { AndroidDeviceInfoProvider(androidContext()) }
-    single { SessionExporter(get(), get()) }
-    single { TelemetryLogger(get()) }
+    single<DedupStore> { RoomDedupStore(get()) }
+    single { TelemetryLogger() }
 
+    single {
+        AppLifecycleObserver(
+            outboxProcessor = get(),
+            telemetryLogger = get()
+        )
+    }
     single {
         ScenarioExecutor(
             activeProfileStore = get(),
             connectionManager = get(),
             messageSender = get(),
-            deviceInfo = get()
+            deviceInfo = get(),
         )
     }
-
-    // lifecycle observer
-    single { AppLifecycleObserver(get(), get(), get()) }
+    single {
+        SessionExporter(
+            context = androidContext(),
+            runDao = get(),
+            runEventDao = get()
+        )
+    }
 }

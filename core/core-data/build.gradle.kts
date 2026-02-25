@@ -1,6 +1,5 @@
-
 plugins {
-    alias(libs.plugins.android.library)
+    id("com.msa.chatlab.android.library")
     alias(libs.plugins.kotlin.android)
 }
 
@@ -26,7 +25,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
 
     // DataStore for active profile persistence
-    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    implementation(libs.androidx.datastore.preferences)
 
     // modules
     implementation(project(":core:core-common"))

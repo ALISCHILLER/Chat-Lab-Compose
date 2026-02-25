@@ -1,6 +1,5 @@
 package com.msa.chatlab.core.data.manager
 
-import com.msa.chatlab.core.data.active.ActiveProfileStore
 import com.msa.chatlab.core.data.repository.ProfileRepository
 import com.msa.chatlab.core.domain.model.*
 import com.msa.chatlab.core.domain.rules.ProfileValidator
@@ -8,6 +7,7 @@ import com.msa.chatlab.core.domain.rules.ValidationResult
 import com.msa.chatlab.core.domain.value.ProfileId
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
+import com.msa.chatlab.core.data.active.ActiveProfileStore
 
 class ProfileManager(
     private val repo: ProfileRepository,
@@ -37,24 +37,18 @@ class ProfileManager(
         return profile
     }
 
-    suspend fun upsert(profile: Profile): Profile {
+    suspend fun upsert(profile: Profile): ValidationResult {
         val validation = validate(profile)
-        require(validation.isValid) { "Profile invalid: ${validation.errors}" }
-        return repo.upsert(profile)
+        if (validation.isSuccess) {
+            repo.upsert(profile)
+        }
+        return validation
     }
 
     suspend fun delete(id: ProfileId) {
-        // اگر پروفایل حذف شد و active بود → clear
-        val active = activeStore.activeProfile.value
-        if (active?.id == id) activeStore.clear()
-        repo.deleteById(id.value)
-    }
-
-    fun setActive(profile: Profile) {
-        activeStore.setActive(profile)
-    }
-
-    fun clearActive() {
-        activeStore.clear()
+        repo.delete(id.value)
+        if (activeStore.activeProfile.value?.id == id) {
+            activeStore.clearActive()
+        }
     }
 }

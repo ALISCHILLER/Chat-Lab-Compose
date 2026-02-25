@@ -1,6 +1,6 @@
 package com.msa.chatlab.protocol.websocket.okhttp.di
 
-import com.msa.chatlab.core.data.registry.ProtocolBinding
+import com.msa.chatlab.core.protocol.api.registry.ProtocolBinding
 import com.msa.chatlab.core.domain.model.Profile
 import com.msa.chatlab.core.domain.model.ProtocolType
 import com.msa.chatlab.core.protocol.api.contract.TransportContract

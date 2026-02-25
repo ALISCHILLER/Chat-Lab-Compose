@@ -3,7 +3,7 @@ package com.msa.chatlab.protocol.signalr
 import com.microsoft.signalr.HubConnection
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.HubConnectionState
-import com.msa.chatlab.core.data.mapper.decodeToTransportEvent
+import com.msa.chatlab.core.protocol.api.mapper.decodeToTransportEvent
 import com.msa.chatlab.core.domain.model.TransportConfig
 import com.msa.chatlab.core.protocol.api.contract.ConnectionState
 import com.msa.chatlab.core.protocol.api.contract.TransportCapabilities

@@ -2,7 +2,6 @@ package com.msa.chatlab.core.data.outbox
 
 import com.msa.chatlab.core.common.util.Backoff
 import com.msa.chatlab.core.data.ack.AckTracker
-import com.msa.chatlab.core.data.active.ActiveProfileStore
 import com.msa.chatlab.core.data.codec.WirePayloadCodec
 import com.msa.chatlab.core.data.manager.ConnectionManager
 import com.msa.chatlab.core.data.telemetry.TelemetryHeaders
@@ -15,9 +14,10 @@ import com.msa.chatlab.core.protocol.api.contract.ConnectionState
 import com.msa.chatlab.core.protocol.api.payload.Envelope
 import com.msa.chatlab.core.protocol.api.payload.OutgoingPayload
 import com.msa.chatlab.core.storage.dao.MessageDao
-import com.msa.chatlab.core.storage.entity.OutboxStatus
+import com.msa.chatlab.core.domain.model.OutboxStatus
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import com.msa.chatlab.core.data.active.ActiveProfileStore
 
 class OutboxProcessor(
     private val outboxQueue: OutboxQueue,
@@ -45,129 +45,71 @@ class OutboxProcessor(
             }
         }
 
-        scope.launch {
-            val profileFlow = activeProfileStore.activeProfile
-            val pendingCountFlow = profileFlow.flatMapLatest { p ->
-                if (p == null) flowOf(0) else outboxQueue.observeCount(p.id.value, OutboxStatus.PENDING)
-            }
-
-            combine(
-                connectionManager.connectionState,
-                profileFlow,
-                pendingCountFlow,
-                connectionManager.simulateOffline
-            ) { st, profile, pending, simOffline ->
-                Quad(st, profile, pending, simOffline)
-            }.collectLatest { (st, profile, pending, simOffline) ->
-                val shouldFlush =
-                    st is ConnectionState.Connected && profile != null && pending > 0 && !simOffline
-
-                if (shouldFlush) startOrContinueFlush(profile!!.id.value)
+        if (flushJob == null) {
+            flushJob = scope.launch {
+                combine(
+                    connectionManager.connectionState,
+                    connectionManager.simulateOffline,
+                    activeProfileStore.activeProfile
+                ) { state, offline, profile -> Quad(state, offline, profile, Unit) }
+                    .distinctUntilChanged()
+                    .collectLatest { (state, offline, profile) ->
+                        if (state is ConnectionState.Connected && !offline && profile != null) {
+                            flushQueue(profile.id.value)
+                        } else {
+                            // No need to do anything, the flush is either running or not applicable
+                        }
+                    }
             }
         }
     }
 
-    private fun startOrContinueFlush(profileId: String) {
-        if (flushJob?.isActive == true) return
-        flushJob = scope.launch { flush(profileId) }
+    fun stop() {
+        flushJob?.cancel()
+        flushJob = null
+        maintenanceJob?.cancel()
+        maintenanceJob = null
     }
 
-    private suspend fun flush(profileId: String) {
+    private suspend fun flushQueue(profileId: String) {
         val profile = activeProfileStore.getActiveNow() ?: return
+        val (deliveryPolicy, retryPolicy) = profile.outboxPolicy
 
-        val retryPolicy = profile.retryPolicy
-        val outboxPolicy = profile.outboxPolicy
-        val deliveryPolicy = profile.deliveryPolicy
-
-        // requeue expired inflight before sending
-        outboxQueue.requeueExpiredInflight(profileId, outboxPolicy.inFlightLeaseMs)
-
-        val batchSize = outboxPolicy.flushBatchSize.coerceIn(1, 256)
-
-        while (connectionManager.isConnectedNow() && !connectionManager.simulateOffline.value) {
-
-            val batch = outboxQueue.claimPendingBatch(profileId, outboxPolicy.inFlightLeaseMs, limit = batchSize)
-            if (batch.isEmpty()) break
-
-            // اگر وسط batch disconnect شد، باقی‌ها را سریع برگردان PENDING
-            fun requeueRemaining(fromIndex: Int) {
-                for (i in fromIndex until batch.size) {
-                    val it = batch[i]
-                    scope.launch {
-                        outboxQueue.updateAttempt(profileId, it.messageId, it.attempt, OutboxStatus.PENDING, "Disconnected during batch")
-                    }
-                }
+        while (scope.isActive) {
+            val items = outboxQueue.claimPendingBatch(profileId, deliveryPolicy.inFlightLeaseMs, deliveryPolicy.batchSize)
+            if (items.isEmpty()) {
+                delay(500) // Wait before polling again
+                continue
             }
 
-            for ((index, item) in batch.withIndex()) {
-
-                if (!connectionManager.isConnectedNow() || connectionManager.simulateOffline.value) {
-                    requeueRemaining(index)
-                    return
-                }
-
-                if (item.attempt >= retryPolicy.maxAttempts) {
-                    outboxQueue.updateAttempt(profileId, item.messageId, item.attempt, OutboxStatus.FAILED, "Max retries reached")
-                    messageDao.updateDelivery(profileId, item.messageId, false, item.attempt, MessageStatus.Failed.name, "Max retries reached", System.currentTimeMillis())
-                    continue
-                }
+            for (item in items) {
+                if (!scope.isActive) break
 
                 try {
-                    val headers = HeaderJson.decode(item.headersJson).toMutableMap()
-
-                    // ✅ تضمین idempotency key
-                    headers.putIfAbsent(TelemetryHeaders.IDEMPOTENCY_KEY, item.messageId)
-
-                    val env = Envelope(
+                    val envelope = Envelope(
                         messageId = com.msa.chatlab.core.domain.value.MessageId(item.messageId),
                         createdAt = com.msa.chatlab.core.domain.value.TimestampMillis(item.createdAt),
                         contentType = item.contentType,
-                        headers = headers,
+                        headers = HeaderJson.decode(item.headersJson),
                         body = item.body
                     )
+                    val payload = OutgoingPayload(envelope, item.destination)
 
-                    val basePayload = OutgoingPayload(envelope = env, destination = item.destination)
-                    val payload = wireCodec.encode(profile, basePayload)
+                    messageDao.updateDelivery(profileId, item.messageId, true, item.attempt, MessageStatus.Sending.name, null, System.currentTimeMillis())
 
-                    telemetryLogger.logSend(item.messageId, item.destination, payload.envelope.headers)
-
-                    messageDao.updateDelivery(profileId, item.messageId, queued = false, attempt = item.attempt, status = MessageStatus.Sending.name, lastError = null, updatedAt = System.currentTimeMillis())
+                    if (profile.ackStrategy == AckStrategy.FireAndForget) {
+                        outboxQueue.remove(profileId, item.messageId)
+                    }
 
                     connectionManager.send(payload)
 
-                    when (val ack = deliveryPolicy.ackStrategy) {
-                        AckStrategy.None, AckStrategy.TransportLevel -> {
-                            outboxQueue.remove(profileId, item.messageId)
-                            messageDao.updateDelivery(profileId, item.messageId, false, item.attempt, MessageStatus.Sent.name, null, System.currentTimeMillis())
-                        }
-
-                        is AckStrategy.ApplicationLevel -> {
-                            val ok = ackTracker.awaitAck(item.messageId, timeoutMs = ack.ackTimeoutMs)
-                            if (ok) {
-                                outboxQueue.remove(profileId, item.messageId)
-                                messageDao.updateDelivery(profileId, item.messageId, false, item.attempt, MessageStatus.Delivered.name, null, System.currentTimeMillis())
-                            } else {
-                                if (deliveryPolicy.semantics == DeliverySemantics.AtMostOnce) {
-                                    outboxQueue.remove(profileId, item.messageId)
-                                    messageDao.updateDelivery(profileId, item.messageId, false, item.attempt, MessageStatus.Failed.name, "ACK timeout (AtMostOnce)", System.currentTimeMillis())
-                                } else {
-                                    val nextAttempt = item.attempt + 1
-                                    outboxQueue.updateAttempt(profileId, item.messageId, nextAttempt, OutboxStatus.PENDING, "ACK timeout")
-                                    messageDao.updateDelivery(profileId, item.messageId, true, nextAttempt, MessageStatus.Sending.name, "ACK timeout", System.currentTimeMillis())
-
-                                    val delayMs = Backoff.exponential(nextAttempt, retryPolicy.initialBackoffMs, retryPolicy.maxBackoffMs, retryPolicy.jitterRatio)
-                                    delay(delayMs)
-                                }
-                            }
-                        }
+                    if (profile.ackStrategy == AckStrategy.FireAndForget) {
+                        messageDao.updateDelivery(profileId, item.messageId, false, item.attempt, MessageStatus.Sent.name, null, System.currentTimeMillis())
                     }
-
                 } catch (e: Exception) {
-                    if (!connectionManager.isConnectedNow() || connectionManager.simulateOffline.value) {
-                        // برگردان PENDING بدون افزایش attempt
-                        outboxQueue.updateAttempt(profileId, item.messageId, item.attempt, OutboxStatus.PENDING, "Disconnected")
-                        requeueRemaining(index + 1)
-                        return
+                    if (e is CancellationException) {
+                        outboxQueue.updateAttempt(profileId, item.messageId, item.attempt, OutboxStatus.PENDING, "Job cancelled")
+                        break
                     }
 
                     val err = e.message ?: "Send error"

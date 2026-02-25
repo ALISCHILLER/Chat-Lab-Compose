@@ -1,6 +1,5 @@
 package com.msa.chatlab.core.data.manager
 
-import com.msa.chatlab.core.data.active.ActiveProfileStore
 import com.msa.chatlab.core.data.codec.WirePayloadCodec
 import com.msa.chatlab.core.data.outbox.OutboxItem
 import com.msa.chatlab.core.data.outbox.OutboxQueue
@@ -12,8 +11,9 @@ import com.msa.chatlab.core.domain.value.MessageId
 import com.msa.chatlab.core.domain.value.TimestampMillis
 import com.msa.chatlab.core.protocol.api.payload.Envelope
 import com.msa.chatlab.core.protocol.api.payload.OutgoingPayload
-import com.msa.chatlab.core.storage.entity.OutboxStatus
+import com.msa.chatlab.core.domain.model.OutboxStatus
 import java.util.UUID
+import com.msa.chatlab.core.data.active.ActiveProfileStore
 
 class MessageSender(
     private val activeProfileStore: ActiveProfileStore,
@@ -40,10 +40,9 @@ class MessageSender(
             destination = destination
         )
 
-        // ✅ telemetry + idempotency headers
-        val headers = mutableMapOf<String, String>()
-        Trace.inject(headers, Trace.newRoot())
-        headers[TelemetryHeaders.IDEMPOTENCY_KEY] = messageId // default
+        // create wire message
+        val trace = Trace.start("send.text")
+        val headers = TelemetryHeaders.create(trace)
 
         val env = Envelope(
             messageId = mid,

@@ -68,10 +68,10 @@ dependencies {
 
     // DI (Koin)
     implementation(libs.koin.android)
-    implementation(libs.koin.compose)
+    implementation(libs.koin.androidx.compose)
 
     // Room (used by app DI module)
-    implementation(libs.room.runtime)
+    implementation(libs.androidx.room.runtime)
 
     // ✅ Design system (needed by MainActivity + wrappers)
     implementation(project(":core:core-designsystem"))
